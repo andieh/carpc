@@ -11,7 +11,7 @@ int main(void)
     //PD3 = B
     //PB3 = G
     //PB1 = R
-    DDRD  = 0b01101000;   // PD3 PD5 and PD6 outputs
+    DDRD  = 0b00001000;   // PD3 PD5 and PD6 outputs
     DDRB  = 0b00001010;   // PB1 PB2 are outputs
  
     
@@ -20,9 +20,6 @@ int main(void)
     //PORTB = 0xFF;       //enable all pull-ups
 
     // enable timer for PWM
-    //TCCR0A = _BV(COM0A1) | _BV(COM0B1) | _BV(WGM01) | _BV(WGM00);      // Non inverting mode on OC0A and OC0B, Mode = Mode 3 FAST PWM
-    TCCR0B = _BV(CS00);                                                // No prescaling
- 
     TCCR1A |= _BV(COM1A1) | _BV(WGM10);
     TCCR1B |= _BV(CS10) | _BV(WGM12);
 
@@ -90,45 +87,3 @@ int main(void)
 }
 
 
-/*
-
-       //OCR2A = (unsigned char)(150*rgb.blue);
- 
-        //Uncomment and adjust the values below to adjust white balance, then transfer the value above
-        //# if SW0 is pressed show pattern 1
-        if((PINB & 0b00010000)==0) {
-          OCR0A=pwm;
-          OCR0B=pwm;
-          OCR2B=pwm;
-        } else {
-          OCR0A=pwm_r;
-          OCR0B=pwm_g;
-          OCR2B=pwm_b;
-        }
-
-        pwm += up ? 1 : -1;
-        if (pwm == 0xff)
-          up = false;
-        else if (pwm == 0x00)
-          up = true;
-
-        pwm_r += up_r ? 1 : -1;
-        if (pwm_r == 0xff)
-          up_r = false;
-        else if (pwm_r == 0x00)
-          up_r = true;
-
-        pwm_g += up_g ? 2 : -2;
-        if (pwm_g == 0xff)
-          up_g = false;
-        else if (pwm_g == 0x00)
-          up_g = true;
-
-        pwm_b += up_b ? 3 : -3;
-        if (pwm_b == 0xff)
-          up_b = false;
-        else if (pwm_b == 0x00)
-          up_b = true;
-
-      _delay_ms(10);
-*/
