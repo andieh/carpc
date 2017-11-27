@@ -4,9 +4,7 @@ main.eep
 main.elf
 main.hex
 main.lss
-main.lst
 main.map
-main.o
 main.sym
-softuart.lst
-softuart.o
+*.lst
+*.o
