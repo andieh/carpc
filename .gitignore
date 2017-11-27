@@ -1,5 +1,6 @@
 .dep/
 main.eep
+*.swp
 main.elf
 main.hex
 main.lss
