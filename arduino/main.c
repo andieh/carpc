@@ -76,7 +76,7 @@ int main(void)
     // LED for buttons on 
     // PD7 = radio
     DDRD  = 0b10001000;   // PD3 outputs
-    DDRB  = 0b00001010;   // PB1 PB2 outputs
+    DDRB  = 0b00101010;   // PB1 PB3 PB5 outputs
  
     // input buttons on port B
     //DDRB = 0x00;        // Port B are all inputs
@@ -196,9 +196,9 @@ int main(void)
 
         // enable LED stripes if requested
         if (lights_on || doors_open) {
-            set_r = 0x00;
-            set_g = 0x00;
-            set_b = 0x00;
+            set_r = 127; //0x00;
+            set_g = 127; //0x00;
+            set_b = 127; //0x00;
             set_no_dim = true;
         } else {
             set_r = pwm_r;
@@ -217,9 +217,11 @@ int main(void)
 
         // turn on radio button LED
         if (radio_on) {
-            PORTD |= (1 << PD7); // output high
+            PORTD |= (1 << PD7); // output high for LED
+            PORTB |= (1 << PB5); // output high for radio
         } else {
-            PORTD &= ~(1 << PD7); // output low
+            PORTD &= ~(1 << PD7); // output low for LED
+            PORTB &= ~(1 << PB5); // output low for radio
         }
 
 	}
