@@ -67,6 +67,53 @@ uint16_t adc_read(uint8_t channel) {
    return result;
 }
 
+uint16_t animate(uint16_t cnt, uint8_t start) {
+    if (cnt == 0) 
+        return 0; 
+    
+    const uint16_t wait = 300;
+    const uint8_t animateMax = 3;
+    const uint8_t animatePorts[3] = {PD7, PD5, PD6};
+
+    static bool animateState[3];
+    static uint8_t animatePos;
+
+    if (start != 255) 
+        animatePos = start;
+
+    if ((cnt == 1) || ((cnt%wait)==0)) {
+        animateState[animatePos] = !animateState[animatePos];
+        animatePos = (animatePos+1)%animateMax;
+    }
+
+    cnt += 1;
+
+    bool allOff = true;
+    for (uint8_t p = 0; p < animateMax; ++p) {
+        if (p == 0 && animateState[p]) {
+            allOff = false;
+            PORTD |= (1 << PD7); // output high for LED
+        } else if (p == 1 && animateState[p]) {
+            allOff = false;
+            PORTD |= (1 << PD5); // output high for LED
+        } else if (p == 2 && animateState[p]) {
+            allOff = false;
+            PORTD |= (1 << PD6); // output high for LED
+        }
+
+        else if (p == 0 && !animateState[p])
+            PORTD &= ~(1 << PD7); // output low for LED
+        else if (p == 1 && !animateState[p])
+            PORTD &= ~(1 << PD5); // output low for LED
+        else if (p == 2 && !animateState[p])
+            PORTD &= ~(1 << PD6); // output low for LED
+    }
+    if (allOff)
+        return 0;
+    
+    return cnt;
+}
+
 int main(void)
 {
     // init PWM LED output for stripes
@@ -75,7 +122,7 @@ int main(void)
     // PB1 = R
     // LED for buttons on 
     // PD7 = radio
-    DDRD  = 0b10001000;   // PD3 outputs
+    DDRD  = 0b11101000;   // PD3 outputs
     DDRB  = 0b00101010;   // PB1 PB3 PB5 outputs
  
     // input buttons on port B
@@ -129,7 +176,14 @@ int main(void)
 
     // light button pressed
     bool lights_on = false;
+    
+    //static bool animateState = false;
+    static bool animateState[3] = {false, false, false};
+    static uint8_t animatePos = 1;
 
+    uint16_t animateCnt = 1;
+
+    // lets start everything
     softuart_puts("here we go!\n");
 
 	for (;;) {
@@ -149,6 +203,8 @@ int main(void)
         // check if button for RADIO is pressed
         //if ((PINB & 0b00000001)==1) { // button pressed
         if (debounce(&PINB, PB0)) {
+            animateCnt = 1; 
+            animate(animateCnt, 1);
             radio_on = !radio_on;
         }
 
@@ -214,15 +270,18 @@ int main(void)
         _delay_ms(50);
         softuart_puts(str);
         softuart_puts_P("\n");*/
-
-        // turn on radio button LED
-        if (radio_on) {
-            PORTD |= (1 << PD7); // output high for LED
-            PORTB |= (1 << PB5); // output high for radio
-        } else {
-            PORTD &= ~(1 << PD7); // output low for LED
-            PORTB &= ~(1 << PB5); // output low for radio
+        
+        if (animateCnt == 0) {
+            // turn on radio button LED
+            if (radio_on) {
+                PORTD |= (1 << PD5); // output high for LED
+                PORTB |= (1 << PB5); // output high for radio
+            } else {
+                PORTD &= ~(1 << PD5); // output low for LED
+                PORTB &= ~(1 << PB5); // output low for radio
+            }
         }
+        animateCnt = animate(animateCnt, 255);
 
 	}
 	
