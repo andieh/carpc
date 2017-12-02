@@ -50,6 +50,11 @@ binary parameters:                  short
     Pinging detected                pingingActive
     Pressure exchange               pressureMeas
 """
+
+# default lifetime of values
+# can be adjusted manually for every value
+DEFAULT_LIFETIME = 10
+
 import time
 import sys
 from thread import start_new_thread
@@ -70,6 +75,8 @@ class EJ22:
         self.lastUpdate = self.getCurrentTime()
         # thread safe lock?
         self.lock = RLock()
+        # last cleanup, reduce runtime
+        self.lastCleanup = self.getCurrentTime()
 
         # set this to true and start the main thread to 
         # start writing data
@@ -90,12 +97,35 @@ class EJ22:
             "fanActive", "fuelActive", "canActive",\
             "pingingActive", "pressureMeas"]
         for bf in self.binaryFields:
-            setattr(self, bf, DataList(1))
+            setattr(self, bf, DataList(type=1,lifetime=DEFAULT_LIFETIME))
 
         self.fields = self.binaryFields + self.continuousFields
 
+    def cleanupData(self):
+        """
+        cleanup data if too old
+        lifetime can be set individually for every value 
+        """
+        ts = self.getCurrentTime()
+        # only cleanup every second
+        if (ts - self.lastCleanup) < 1:
+            return 
+        for field in self.fields:
+            getattr(self,field).cleanup()
+            
+        self.lastCleanup = ts
+
+    def setLifetime(self, field, lifetime):
+        """ 
+        set lifetime for a given field
+        """
+        if field not in self.fields:
+            print("data field {} not available".format(field))
+            sys.exit(1)
+        getattr(self, field).setLifetime(lifetime)
+
     def getCurrentTime(self):
-        return int(time.time())
+        return time.time()
 
     def add(self, field, value):
         if field not in self.fields:
@@ -105,11 +135,12 @@ class EJ22:
         self.lock.acquire()
         ts = self.getCurrentTime()
         try:
-            getattr(self, field).addData(ts, value)
+            getattr(self, field).add(ts, value)
         finally:
             self.lock.release()
 
         self.lastUpdate = ts
+        self.cleanupData()
 
     def get(self, field):
         if field not in self.fields:
@@ -121,13 +152,14 @@ class EJ22:
             value = getattr(self, field).get()
         finally:
             self.lock.release()
+        self.cleanupData()
         return value
 
     def run(self):
         # implement this function in your derived class
         while self.running:
+            print("do not run this, please implement something to feed me")
             time.sleep(1)
-        print("stop receiving data")
             
     def start(self):
         self.running = True

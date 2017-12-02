@@ -1,3 +1,5 @@
+import time
+
 """
 each datapoint contains:
 - timestamp when it was stored
@@ -32,10 +34,15 @@ data. default type can be:
     2 = newest value 
 """
 class DataList:
-    def __init__(self, type=0):
+    def __init__(self, type=0, lifetime=10):
         self._data = {}
         self.dataType = type
+        self.lifetime = lifetime
     
+    def add(self, ts, value):
+        data = DataPoint(ts, value)
+        self.addData(data)
+
     def addData(self, data):
         """
         add data to local representation
@@ -45,15 +52,24 @@ class DataList:
             print "dropping data since not valid"
             return
         self._data[data.timestamp] = data.value
+    
+    def setLifetime(self, lifetime):
+        self.lifetime = lifetime
+
+    def getCurrentTime(self):
+        return time.time()
 
     def __iter__(self):
         for key in sorted(self._data.keys()):
             yield self._data[key]
 
-    def cleanup(self, timestamp):
+    def cleanup(self, timestamp=None):
         """ 
         removes values older than timestamp
         """
+        if timestamp is None:
+            timestamp = self.getCurrentTime() - self.lifetime
+
         for k in self._data.keys():
             if k < timestamp:
                 del self._data[k]
@@ -78,7 +94,7 @@ class DataList:
         """
         if not len(self._data):
             return 0.0
-
+        
         v = sum(self._data.values())
         return v / float(len(self._data))
 
