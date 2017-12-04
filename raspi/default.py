@@ -7,6 +7,10 @@ import os
 import xbmc
 import xbmcaddon
 import pyxbmct
+import time
+from thread import start_new_thread
+
+from ej22 import FakeData
 
 _addon = xbmcaddon.Addon()
 _addon_path = _addon.getAddonInfo('path')
@@ -16,18 +20,18 @@ _addon_path = _addon.getAddonInfo('path')
 
 
 class MyAddon(pyxbmct.AddonDialogWindow):
-
     def __init__(self, title=''):
         super(MyAddon, self).__init__(title)
         self.setGeometry(1280, 720, 10, 5)
-        self.set_info_controls()
-        self.set_active_controls()
-        #self.set_navigation()
+        self.init_controls()
+        self.connection = FakeData()
+        self.connection.start()
         # Connect a key action (Backspace) to close the window.
         self.connect(pyxbmct.ACTION_NAV_BACK, self.close)
+        start_new_thread(self.update_labels, ())
 
-    def set_info_controls(self):
-        self.placeControl(pyxbmct.Label('Continuous Parameters', alignment=pyxbmct.ALIGN_CENTER), 0, 0, 1, 2)
+    def init_controls(self):
+        self.placeControl(pyxbmct.Label('Continuous Parameters', alignment=pyxbmct.ALIGN_CENTER), 0, 0, 1, 4)
         
         volt = pyxbmct.Label('Voltage', alignment=pyxbmct.ALIGN_LEFT)
         self.placeControl(volt, 1, 0)
@@ -59,14 +63,31 @@ class MyAddon(pyxbmct.AddonDialogWindow):
         self.placeControl(self.zeroedThrottle, 9, 1)
         
         self.placeControl(pyxbmct.Label('Injector pulse width', alignment=pyxbmct.ALIGN_LEFT), 1, 2)
+        self.injectionWidth = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
+        self.placeControl(self.injectionWidth, 1, 3)
         self.placeControl(pyxbmct.Label('IAC valve duty cycle', alignment=pyxbmct.ALIGN_LEFT), 2, 2)
+        self.dutyCycle = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
+        self.placeControl(self.dutyCycle, 2, 3)
         self.placeControl(pyxbmct.Label('Oxygen sensor signal', alignment=pyxbmct.ALIGN_LEFT), 3, 2)
+        self.oxygen = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
+        self.placeControl(self.oxygen, 3, 3)
         self.placeControl(pyxbmct.Label('Fuel trim', alignment=pyxbmct.ALIGN_LEFT), 4, 2)
+        self.fuelTrim = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
+        self.placeControl(self.fuelTrim, 4, 3)
         self.placeControl(pyxbmct.Label('Timing correction', alignment=pyxbmct.ALIGN_LEFT), 5, 2)
+        self.timingCorrection = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
+        self.placeControl(self.timingCorrection, 5, 3)
         self.placeControl(pyxbmct.Label('Boost control duty cycle', alignment=pyxbmct.ALIGN_LEFT), 6, 2)
+        self.boostControl = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
+        self.placeControl(self.boostControl, 6, 3)
         self.placeControl(pyxbmct.Label('Barometric pressure', alignment=pyxbmct.ALIGN_LEFT), 7, 2)
+        self.pressure = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
+        self.placeControl(self.pressure, 7, 3)
         self.placeControl(pyxbmct.Label('Boost/vacuum', alignment=pyxbmct.ALIGN_LEFT), 8, 2)
-        
+        self.boost = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
+        self.placeControl(self.boost, 8, 3)
+    
+        self.placeControl(pyxbmct.Label('Binary Parameters', alignment=pyxbmct.ALIGN_CENTER), 0, 4, 1, 1)
         self.ignition = pyxbmct.RadioButton('Ignition')
         self.placeControl(self.ignition, 1, 4)
         self.transmission = pyxbmct.RadioButton('Automatic transmission mode')
@@ -226,6 +247,18 @@ class MyAddon(pyxbmct.AddonDialogWindow):
         else:
             self.radiobutton.setLabel('Off')
 
+    def update_labels(self):
+        self.running = True
+        while self.running:
+            time.sleep(0.1)
+            
+            self.voltage.setLabel("{}".format(self.connection.get("engineSpeed")))
+        
+    def stop(self):
+        window.connection.stop()
+        self.running = False
+        # maybe wait?
+
     def list_update(self):
         # Update list_item label when navigating through the list.
         try:
@@ -247,4 +280,5 @@ if __name__ == '__main__':
     window.doModal()
     # Destroy the instance explicitly because
     # underlying xbmcgui classes are not garbage-collected on exit.
+    window.stop()
     del window
