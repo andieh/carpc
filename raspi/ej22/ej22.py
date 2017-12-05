@@ -85,9 +85,9 @@ class EJ22:
         self.continuousFields = ["romId", "voltage", \
             "groundSpeed", "engineSpeed", "coolantTemp",\
             "timing", "airflow", "load", "throttle", \
-            "zeroedThrottle", "injectionWith", "dutyCycle",\
+            "zeroedThrottle", "injectionWidth", "dutyCycle",\
             "oxygen", "fuelTrim", "timingCorrection",\
-            "boostControl", "pressure", "boost"]
+            "boostControl", "barPressure", "boost"]
         for cf in self.continuousFields:
             setattr(self, cf, DataList())
 
@@ -153,6 +153,8 @@ class EJ22:
         finally:
             self.lock.release()
         self.cleanupData()
+        if field in self.binaryFields:
+            return bool(value)
         return value
 
     def run(self):

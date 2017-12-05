@@ -12,20 +12,25 @@ from thread import start_new_thread
 
 from ej22 import FakeData
 
-_addon = xbmcaddon.Addon()
+_addon = xbmcaddon.Addon(id = 'script.ej22diag')
+ADDON = xbmcaddon.Addon(id = 'script.ej22diag')
 _addon_path = _addon.getAddonInfo('path')
+
 
 # Enable or disable Estuary-based design explicitly
 # pyxbmct.skin.estuary = True
 
 
-class MyAddon(pyxbmct.AddonDialogWindow):
+class MyAddon(pyxbmct.AddonFullWindow):
     def __init__(self, title=''):
         super(MyAddon, self).__init__(title)
         self.setGeometry(1280, 720, 10, 5)
         self.init_controls()
         self.connection = FakeData()
         self.connection.start()
+        
+        self.ignoreContinuousFields = ["romId"]
+        self.ignoreBinaryFields = ["testMode", "memoryMode", "park", "california", "acSwitch", "acActive"]
         # Connect a key action (Backspace) to close the window.
         self.connect(pyxbmct.ACTION_NAV_BACK, self.close)
         start_new_thread(self.update_labels, ())
@@ -81,8 +86,8 @@ class MyAddon(pyxbmct.AddonDialogWindow):
         self.boostControl = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
         self.placeControl(self.boostControl, 6, 3)
         self.placeControl(pyxbmct.Label('Barometric pressure', alignment=pyxbmct.ALIGN_LEFT), 7, 2)
-        self.pressure = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
-        self.placeControl(self.pressure, 7, 3)
+        self.barPressure = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
+        self.placeControl(self.barPressure, 7, 3)
         self.placeControl(pyxbmct.Label('Boost/vacuum', alignment=pyxbmct.ALIGN_LEFT), 8, 2)
         self.boost = pyxbmct.Label('0.0', alignment=pyxbmct.ALIGN_LEFT)
         self.placeControl(self.boost, 8, 3)
@@ -90,8 +95,8 @@ class MyAddon(pyxbmct.AddonDialogWindow):
         self.placeControl(pyxbmct.Label('Binary Parameters', alignment=pyxbmct.ALIGN_CENTER), 0, 4, 1, 1)
         self.ignition = pyxbmct.RadioButton('Ignition')
         self.placeControl(self.ignition, 1, 4)
-        self.transmission = pyxbmct.RadioButton('Automatic transmission mode')
-        self.placeControl(self.transmission, 2, 4)
+        self.transmissionMode = pyxbmct.RadioButton('Automatic transmission mode')
+        self.placeControl(self.transmissionMode, 2, 4)
         #Test mode
         #Read memory mode
         self.neutral = pyxbmct.RadioButton('Neutral switch')
@@ -102,16 +107,16 @@ class MyAddon(pyxbmct.AddonDialogWindow):
         self.placeControl(self.idle, 4, 4)
         #Air conditioning switch
         #Air conditioning relay active
-        self.radiator = pyxbmct.RadioButton('Radiator fan relay active')
-        self.placeControl(self.radiator, 5, 4)
-        self.fuel = pyxbmct.RadioButton('Fuel pump relay active')
-        self.placeControl(self.fuel, 6, 4)
-        self.canister = pyxbmct.RadioButton('Canister purge valve active')
-        self.placeControl(self.canister, 7, 4)
-        self.pinging = pyxbmct.RadioButton('Pinging detected')
-        self.placeControl(self.pinging, 8, 4)
-        self.pressure = pyxbmct.RadioButton('Pressure exchange')
-        self.placeControl(self.pressure, 9, 4)
+        self.fanActive= pyxbmct.RadioButton('Radiator fan relay active')
+        self.placeControl(self.fanActive, 5, 4)
+        self.fuelActive = pyxbmct.RadioButton('Fuel pump relay active')
+        self.placeControl(self.fuelActive, 6, 4)
+        self.canActive = pyxbmct.RadioButton('Canister purge valve active')
+        self.placeControl(self.canActive, 7, 4)
+        self.pingingActive = pyxbmct.RadioButton('Pinging detected')
+        self.placeControl(self.pingingActive, 8, 4)
+        self.pressureMeas = pyxbmct.RadioButton('Pressure exchange')
+        self.placeControl(self.pressureMeas, 9, 4)
     
         # Button
         self.button = pyxbmct.Button('Close')
@@ -241,6 +246,7 @@ class MyAddon(pyxbmct.AddonDialogWindow):
             pass
 
     def radio_update(self):
+        pass
         # Update radiobutton caption on toggle
         if self.radiobutton.isSelected():
             self.radiobutton.setLabel('On')
@@ -251,8 +257,16 @@ class MyAddon(pyxbmct.AddonDialogWindow):
         self.running = True
         while self.running:
             time.sleep(0.1)
-            
-            self.voltage.setLabel("{}".format(self.connection.get("engineSpeed")))
+            for field in self.connection.continuousFields:
+                if field in self.ignoreContinuousFields:
+                    continue
+                getattr(self, field).setLabel("{}".format(self.connection.get(field)))
+
+            for field in self.connection.binaryFields:
+                if field in self.ignoreBinaryFields:
+                    continue
+                getattr(self, field).setSelected(self.connection.get(field))
+                getattr(self, field).setEnabled(self.connection.get(field))
         
     def stop(self):
         window.connection.stop()
