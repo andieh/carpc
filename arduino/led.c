@@ -3,6 +3,53 @@
 
 #define LED_DIM_SPEED 5
 
+uint16_t animate(uint16_t cnt, uint8_t start) {
+    if (cnt == 0) 
+        return 0; 
+    
+    const uint16_t wait = 300;
+    const uint8_t animateMax = 3;
+    const uint8_t animatePorts[3] = {PD7, PD5, PD6};
+
+    static bool animateState[3];
+    static uint8_t animatePos;
+
+    if (start != 255) 
+        animatePos = start;
+
+    if ((cnt == 1) || ((cnt%wait)==0)) {
+        animateState[animatePos] = !animateState[animatePos];
+        animatePos = (animatePos+1)%animateMax;
+    }
+
+    cnt += 1;
+
+    bool allOff = true;
+    for (uint8_t p = 0; p < animateMax; ++p) {
+        if (p == 0 && animateState[p]) {
+            allOff = false;
+            PORTD |= (1 << PD7); // output high for LED
+        } else if (p == 1 && animateState[p]) {
+            allOff = false;
+            PORTD |= (1 << PD5); // output high for LED
+        } else if (p == 2 && animateState[p]) {
+            allOff = false;
+            PORTD |= (1 << PD6); // output high for LED
+        }
+
+        else if (p == 0 && !animateState[p])
+            PORTD &= ~(1 << PD7); // output low for LED
+        else if (p == 1 && !animateState[p])
+            PORTD &= ~(1 << PD5); // output low for LED
+        else if (p == 2 && !animateState[p])
+            PORTD &= ~(1 << PD6); // output low for LED
+    }
+    if (allOff)
+        return 0;
+    
+    return cnt;
+}
+
 uint8_t calcValue(uint8_t color, uint8_t current) {
     //set led dimm speed
     uint8_t step = LED_DIM_SPEED;
@@ -30,10 +77,11 @@ void setRGB(uint8_t r, uint8_t g, uint8_t b, bool force) {
     uint8_t new_r = r;
     uint8_t new_g = g;
     uint8_t new_b = b;
-    if (!force) 
+    if (!force) {
         new_r = calcValue(r, current_r);
         new_g = calcValue(g, current_g);
         new_b = calcValue(b, current_b);
+    }
 
     bool update_r = (current_r != new_r);
     bool update_g = (current_g != new_g);
