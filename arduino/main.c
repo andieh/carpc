@@ -42,6 +42,103 @@
 #include "led.h"
 #include "buttons.h"
 
+#include <stdlib.h>
+#include <avr/io.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <avr/sfr_defs.h>
+
+// B0 = digital 8
+// B4 = digital 12 (miso)
+// B5 = digital 13 (SCK) 
+#define SHLD      PORTB0 
+#define CLK       PORTB4 
+#define QH        PORTB5 
+
+// read of LEDs 
+// D5 = digital 5
+// D6 = digital 6
+#define CP_PIN  PORTD5 // clock
+#define CP_PORT PORTD
+#define DP_PIN  PORTD6 // data
+#define DP_PORT PORTD
+
+#define PIN_QH    PINB /* This is the only input. */
+ 
+#define DDR_SHLD  DDRB
+#define DDR_CLK   DDRB
+#define DDR_QH    DDRB
+
+#define PORT_SHLD PORTB
+#define PORT_CLK  PORTB
+#define PORT_QH   PORTB
+
+#define LED_PIN_RADIO  0 // enable radio
+#define LED_PIN_LIGHTS 1 // enable light inside
+#define LED_PIN_FIVE   2 // 5 volt rail enabled?
+#define LED_PIN_ALARM  3 // enable / disable alarm
+#define LED_PIN_ELSE1  4 // t.b.d.
+#define LED_PIN_ELSE2  5 // t.b.d.
+#define LED_PIN_POWER  6 // shows a 220V connection
+#define LED_PIN_VISU   7 // display only led (tbd.)  
+
+void init(void) {
+    /* Make PORTD2 (Arduino digital 2) input by clearing bit in DDR */
+    //DDRD &= ~(_BV(PORTD2));
+
+    /* In input mode, when pull-up is enabled, default state of pin becomes ’1′. So even if */
+    /* you don’t connect anything to pin and if you try to read it, it will read as 1. Now, */
+    /* when you externally drive that pin to zero(i.e. connect to ground / or pull-down),   */
+    /* only then it will be read as 0. */
+
+    /* Enable pullups by setting bits in PORT. Default state is now high. */
+    //PORTD |= (_BV(PORTD2));
+    //PORT_SHLD |= (_BV(SHLD));
+    //PORT_CLK |= (_BV(CLK));
+    //PORT_QH |= (_BV(QH));
+    
+    /* Make PORTB5 (Arduino digital 13) an output by setting bit in DDR. */
+    //DDRB |= _BV(PORTB5);
+
+    DDR_SHLD |= (_BV(SHLD));  /* Output */
+    DDR_CLK |= (_BV(CLK));  /* Output */
+    DDR_QH &= ~(_BV(QH)); /* Input  */
+
+}
+
+uint8_t digital_read(int input_register, int pin) {
+    return bit_is_set(input_register, pin) != 0 ? 1 : 0;
+}
+
+/* You could use cbi ie &= ~ or sbi ie |= but this makes code more readable. */
+void digital_write(volatile uint8_t *data_port, uint8_t pin, uint8_t value) {
+    if (0 == value) {
+        *data_port &= ~(_BV(pin));
+    } else {
+        *data_port |= _BV(pin);
+    }
+}
+
+void set_leds(uint8_t leds) {
+  uint8_t MAX_LEDS = 8; // number of LEDs connected
+  for (uint8_t i = MAX_LEDS; i > 0; --i) {
+    if (bit_is_set(leds,(i-1)))
+      DP_PORT |= (_BV(DP_PIN));
+    else
+      DP_PORT &= ~(_BV(DP_PIN));
+    CP_PORT |= (_BV(CP_PIN));
+    CP_PORT &= ~(_BV(CP_PIN));
+  }
+}
+
+uint8_t set_led(uint8_t leds, bool cond, uint8_t pin) {
+  if (cond) 
+    leds |= ( 1 << pin);
+  else 
+    leds &= ~(1 << pin);
+  return leds;
+}
+
 int main(void)
 {
     // init PWM LED output for stripes
@@ -50,9 +147,22 @@ int main(void)
     // PB1 = R
     // LED for buttons on 
     // PD7 = radio
-    DDRD  = 0b00001000;   // PD3 outputs
+    DDRD  = 0b01101000;   // PD3 outputs
     DDRB  = 0b00001010;   // PB1 PB3 PB5 outputs
- 
+
+    init();
+    
+    uint8_t register_value;
+    uint8_t pin_value;
+    bool radio = false;
+    bool light = false;
+    bool five = false;
+    bool alarm = false;
+    bool else1 = false;
+    bool else2 = false;
+    bool twotwenty = true;
+    bool unknown = true;
+
     // input buttons on port B
     //DDRB = 0x00;        // Port B are all inputs
     //PORTB = 0xFF;       // enable all pull-ups
@@ -83,12 +193,16 @@ int main(void)
     uint8_t pwm_r = 0xFF; // led off R
     uint8_t pwm_g = 0xFF; // led off G
     uint8_t pwm_b = 0xFF; // led off B
-	char c;
-
-	softuart_init();
-	softuart_turn_rx_on(); /* redundant - on by default */
-
-	sei();
+    
+    // init softuart transmission
+    char c;
+    softuart_init();
+    softuart_turn_rx_on(); /* redundant - on by default */
+    sei();
+    
+    // clear LEDs
+    uint8_t leds = 0b00000000;
+    set_leds(leds); 
 
     // PWM and stuff for LED stripe
     bool no_dim = false; // dims the led if requested, otherwise set value instantly
@@ -103,9 +217,6 @@ int main(void)
     // doors are open
     bool doors_open = false;
 
-    // light button pressed
-    bool lights_on = false;
-    
     //static bool animateState = false;
     static bool animateState[3] = {false, false, false};
     static uint8_t animatePos = 1;
@@ -116,6 +227,7 @@ int main(void)
     softuart_puts("here we go!\n");
 
 	  for (;;) {
+
       // check if the doors are open
       if (adc_read(PC5) > door_voltage_threshold)
           doors_open = false;
@@ -124,9 +236,100 @@ int main(void)
 
       // check if someone pressed the button for lights
       if ((PINB & 0b00000100)==0)
-          lights_on = true;
-      else 
-          lights_on = false;
+          light = true;
+      /*else 
+          light = false;*/
+
+      /* Read in parallel input by setting SH/LD low. */
+      digital_write(&PORT_SHLD, SHLD, 0); 
+      /* Freeze data by setting SH/LD high. When SH/LD is high data enters */
+      /* to reqisters from SER input and shifts one place to the right     */
+      /* (Q0 -> Q1 -> Q2, etc.) with each positive-going clock transition. */
+      digital_write(&PORT_SHLD, SHLD, 1);
+      
+      uint8_t new_leds = 0b00000000;
+      new_leds = set_led(new_leds, radio, LED_PIN_RADIO);
+      new_leds = set_led(new_leds, light, LED_PIN_LIGHTS);
+      new_leds = set_led(new_leds, five,  LED_PIN_FIVE);
+      new_leds = set_led(new_leds, alarm, LED_PIN_ALARM);
+      new_leds = set_led(new_leds, else1, LED_PIN_ELSE1);
+      new_leds = set_led(new_leds, else2, LED_PIN_ELSE2);
+      new_leds = set_led(new_leds, twotwenty, LED_PIN_POWER);
+      new_leds = set_led(new_leds, twotwenty, LED_PIN_VISU);
+      if (new_leds != leds) {
+        set_leds(new_leds);
+        leds = new_leds;
+      }
+
+      uint8_t delayAfterPress = 200;
+      register_value = 0;
+      for(uint8_t i=0; i<8; i++) {
+        pin_value = digital_read(PIN_QH, QH);  
+        register_value |= (pin_value << ((8 - 1) - i));          
+        if (i==2) {
+          if (!five && pin_value) {
+            _delay_ms(delayAfterPress);
+            five = true;
+          } else if (five && pin_value) {
+            _delay_ms(delayAfterPress);
+            five = false;
+          }
+        }
+        
+        else if (i==3) {
+          if (!else1 && pin_value) {
+            _delay_ms(delayAfterPress);
+            else1 = true;
+          } else if (else1 && pin_value) {
+            _delay_ms(delayAfterPress);
+            else1 = false;
+          }
+        }
+
+        else if(i==4) {
+          if (!alarm && pin_value) {
+            _delay_ms(delayAfterPress);
+            alarm = true;
+          } else if (alarm && pin_value) {
+            _delay_ms(delayAfterPress);
+            alarm = false;
+          }
+        }
+        
+        else if (i==5) {
+          if (!radio && pin_value) {
+            _delay_ms(delayAfterPress);
+            radio = true;
+          } else if (radio && pin_value) {
+            _delay_ms(delayAfterPress);
+            radio = false;
+          }
+        }
+        
+        else if (i==6) {
+          if (!else2 && pin_value) {
+            _delay_ms(delayAfterPress);
+            else2 = true;
+          } else if (else2 && pin_value) {
+            _delay_ms(delayAfterPress);
+            else2 = false;
+          }
+        }
+        
+        else if (i==7) {
+          if (!light && pin_value) {
+            _delay_ms(delayAfterPress);
+            light = true;
+          } else if (light && pin_value) {
+            _delay_ms(delayAfterPress);
+            light = false;
+          }
+        }
+        // Pulse clock input (CP) LOW-HIGH to read next bit.
+        digital_write(&PORT_CLK, CLK, 0);
+        digital_write(&PORT_CLK, CLK, 1);
+      }
+
       
       // UART communication with the raspberry pi
       if ( softuart_kbhit() ) {
@@ -171,7 +374,7 @@ int main(void)
       }
 
       // enable LED stripes if requested
-      if (lights_on || doors_open) {
+      if (light || doors_open) {
           set_r = 127; //0x00;
           set_g = 127; //0x00;
           set_b = 127; //0x00;
