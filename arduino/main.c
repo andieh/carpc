@@ -10,7 +10,7 @@
  *            |            |      | PB5    D13 | < QH (buttons) 
  *            | NC         |ATMEGA| PB4    D12 | > CLK (buttons)
  *            | IOREF      | 328P | PB3    D11 | > G channel (PWM)
- *            | 3V3        |      | PB2    D10 | < Light button (back)
+ *            | 3V3        |      | PB2    D10 | > Horn, Alarm
  *            | 5V         |      | PB1     D9 | > R channel (PWM)
  *            | GND        |      | PB0     D8 | > SHLD (buttons)
  *            | GND        |      |            |
@@ -90,6 +90,8 @@
 // outputs 
 #define RADIO_OUT_PORT   PORTD
 #define RADIO_OUT_PIN    PORTD7
+#define ALARM_OUT_PORT   PORTB
+#define ALARM_OUT_PIN    PORTB2
 
 void init_buttons(void) {
     /* In input mode, when pull-up is enabled, default state of pin becomes ’1′. So even if */
@@ -144,7 +146,7 @@ int main(void)
     // LED for buttons on 
     // PD7 = radio
     DDRD  = 0b11101000;   // PD3 outputs
-    DDRB  = 0b00001010;   // PB1 PB3 PB5 outputs
+    DDRB  = 0b00001110;   // PB1 PB3 PB5 outputs
 
     init_buttons();
     
@@ -384,6 +386,10 @@ int main(void)
       else
         RADIO_OUT_PORT &= ~(_BV(RADIO_OUT_PIN));
 
+      if (alarm)
+        ALARM_OUT_PORT |= (_BV(ALARM_OUT_PIN));
+      else
+        ALARM_OUT_PORT &= ~(_BV(ALARM_OUT_PIN));
       /*char str[16];
       itoa(adc_read(ADC_PIN), str, 10);
       str[5] = '\0';
