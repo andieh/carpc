@@ -7,16 +7,16 @@
  *            |            |      | PC4     A5 |
  *            |            |      |       AREF |
  *            |            |      |        GND |
- *            |            |      | PB5    D13 |
- *            | NC         |ATMEGA| PB4    D12 | 
+ *            |            |      | PB5    D13 | < QH (buttons) 
+ *            | NC         |ATMEGA| PB4    D12 | > CLK (buttons)
  *            | IOREF      | 328P | PB3    D11 | > G channel (PWM)
  *            | 3V3        |      | PB2    D10 | < Light button (back)
  *            | 5V         |      | PB1     D9 | > R channel (PWM)
- *            | GND        |      | PB0     D8 |
+ *            | GND        |      | PB0     D8 | > SHLD (buttons)
  *            | GND        |      |            |
- *            | Vin        |      | PD7     D7 |
- *            |            |      | PD6     D6 |
- *            | A0     PC0 |      | PD5     D5 |
+ *            | Vin        |      | PD7     D7 | > 12V radio enable 
+ *            |            |      | PD6     D6 | > CLK (LED shift register)
+ *            | A0     PC0 |      | PD5     D5 | > Data (LEDs shift register)
  *            | A1     PC1 |      | PD4     D4 | > TX (softuart RPi)
  *            | A2     PC2 |      | PD3     D3 | > B channel (PWM)
  *            | A3     PC3 |      | PD2     D2 | < RX (softuart RPi)
@@ -25,12 +25,14 @@
  *            |            --------            |
  *            |---------------------------------
  *
- *
- *
- *
- *
- *
- *
+ *  t.b.d.:
+ *  - output: Radio enable 
+ *  - output: 5V enable
+ *  - input: doors open?
+ *  - input: door locked?
+ *  - output: alarm horn
+ *  - ESP8622: - connection to the ESP8622??? RX / TX 
+ *             - enable / disable?
  */
 
 
@@ -48,31 +50,18 @@
 #include <stdint.h>
 #include <avr/sfr_defs.h>
 
-// B0 = digital 8
-// B4 = digital 12 (miso)
-// B5 = digital 13 (SCK) 
-#define SHLD      PORTB0 
-#define CLK       PORTB4 
-#define QH        PORTB5 
 
 // read of LEDs 
-// D5 = digital 5
-// D6 = digital 6
+// 2 pins for setting up to unlimited number 
+// of LEDs. in our case up to 8 (two shift 
+// registers).
+// PD5 = digital 5
+// PD6 = digital 6
 #define CP_PIN  PORTD5 // clock
 #define CP_PORT PORTD
 #define DP_PIN  PORTD6 // data
-#define DP_PORT PORTD
-
-#define PIN_QH    PINB /* This is the only input. */
- 
-#define DDR_SHLD  DDRB
-#define DDR_CLK   DDRB
-#define DDR_QH    DDRB
-
-#define PORT_SHLD PORTB
-#define PORT_CLK  PORTB
-#define PORT_QH   PORTB
-
+#define DP_PORT PORTD 
+// definition of the position of led to set
 #define LED_PIN_RADIO  0 // enable radio
 #define LED_PIN_LIGHTS 1 // enable light inside
 #define LED_PIN_FIVE   2 // 5 volt rail enabled?
@@ -81,29 +70,36 @@
 #define LED_PIN_ELSE2  5 // t.b.d.
 #define LED_PIN_POWER  6 // shows a 220V connection
 #define LED_PIN_VISU   7 // display only led (tbd.)  
+ 
+// button connection definition
+// 3 pins for reading up to 8 buttons
+// PB0 = digital 8
+// PB4 = digital 12 (miso)
+// PB5 = digital 13 (SCK) 
+#define SHLD      PORTB0 
+#define CLK       PORTB4 
+#define QH        PORTB5 
+#define DDR_SHLD  DDRB
+#define PORT_SHLD PORTB
+#define DDR_CLK   DDRB
+#define PORT_CLK  PORTB
+#define DDR_QH    DDRB
+#define PORT_QH   PORTB
+#define PIN_QH    PINB /* This is the only input. */
 
-void init(void) {
-    /* Make PORTD2 (Arduino digital 2) input by clearing bit in DDR */
-    //DDRD &= ~(_BV(PORTD2));
+// outputs 
+#define RADIO_OUT_PORT   PORTD
+#define RADIO_OUT_PIN    PORTD7
 
+void init_buttons(void) {
     /* In input mode, when pull-up is enabled, default state of pin becomes ’1′. So even if */
     /* you don’t connect anything to pin and if you try to read it, it will read as 1. Now, */
     /* when you externally drive that pin to zero(i.e. connect to ground / or pull-down),   */
     /* only then it will be read as 0. */
-
     /* Enable pullups by setting bits in PORT. Default state is now high. */
-    //PORTD |= (_BV(PORTD2));
-    //PORT_SHLD |= (_BV(SHLD));
-    //PORT_CLK |= (_BV(CLK));
-    //PORT_QH |= (_BV(QH));
-    
-    /* Make PORTB5 (Arduino digital 13) an output by setting bit in DDR. */
-    //DDRB |= _BV(PORTB5);
-
     DDR_SHLD |= (_BV(SHLD));  /* Output */
     DDR_CLK |= (_BV(CLK));  /* Output */
     DDR_QH &= ~(_BV(QH)); /* Input  */
-
 }
 
 uint8_t digital_read(int input_register, int pin) {
@@ -147,15 +143,16 @@ int main(void)
     // PB1 = R
     // LED for buttons on 
     // PD7 = radio
-    DDRD  = 0b01101000;   // PD3 outputs
+    DDRD  = 0b11101000;   // PD3 outputs
     DDRB  = 0b00001010;   // PB1 PB3 PB5 outputs
 
-    init();
+    init_buttons();
     
     uint8_t register_value;
     uint8_t pin_value;
     bool radio = false;
     bool light = false;
+    bool door_switch = false;
     bool five = false;
     bool alarm = false;
     bool else1 = false;
@@ -169,7 +166,7 @@ int main(void)
 
     //DDRB &= ~( 1 << PB0 );        /* PIN PB0 auf Eingang Taster)  */
     //PORTB = 0b00010001;   // pull-up for PB0, PB4
-    PORTB |= ( 1 << PB2 );        // Pullup Innenlicht
+    //PORTB |= ( 1 << PB2 );        // Pullup Innenlicht
     //PORTB |= ( 1 << PB4 );        // Pullup Radio
     //PORTC |= ( 1 << PC5 );        // Pullup Tuerkontakt
 
@@ -229,16 +226,10 @@ int main(void)
 	  for (;;) {
 
       // check if the doors are open
-      if (adc_read(PC5) > door_voltage_threshold)
+      /*if (adc_read(PC5) > door_voltage_threshold)
           doors_open = false;
       else
-          doors_open = true;
-
-      // check if someone pressed the button for lights
-      if ((PINB & 0b00000100)==0)
-          light = true;
-      /*else 
-          light = false;*/
+          doors_open = true;*/
 
       /* Read in parallel input by setting SH/LD low. */
       digital_write(&PORT_SHLD, SHLD, 0); 
@@ -247,15 +238,16 @@ int main(void)
       /* (Q0 -> Q1 -> Q2, etc.) with each positive-going clock transition. */
       digital_write(&PORT_SHLD, SHLD, 1);
       
+      bool inlight = (light || doors_open);
       uint8_t new_leds = 0b00000000;
       new_leds = set_led(new_leds, radio, LED_PIN_RADIO);
-      new_leds = set_led(new_leds, light, LED_PIN_LIGHTS);
+      new_leds = set_led(new_leds, inlight, LED_PIN_LIGHTS);
       new_leds = set_led(new_leds, five,  LED_PIN_FIVE);
       new_leds = set_led(new_leds, alarm, LED_PIN_ALARM);
       new_leds = set_led(new_leds, else1, LED_PIN_ELSE1);
       new_leds = set_led(new_leds, else2, LED_PIN_ELSE2);
       new_leds = set_led(new_leds, twotwenty, LED_PIN_POWER);
-      new_leds = set_led(new_leds, twotwenty, LED_PIN_VISU);
+      new_leds = set_led(new_leds, unknown, LED_PIN_VISU);
       if (new_leds != leds) {
         set_leds(new_leds);
         leds = new_leds;
@@ -374,10 +366,10 @@ int main(void)
       }
 
       // enable LED stripes if requested
-      if (light || doors_open) {
-          set_r = 127; //0x00;
-          set_g = 127; //0x00;
-          set_b = 127; //0x00;
+      if (inlight) {
+          set_r = 0x00;
+          set_g = 0x00;
+          set_b = 0x00;
           set_no_dim = true;
       } else {
           set_r = pwm_r;
@@ -386,6 +378,11 @@ int main(void)
           set_no_dim = no_dim;
       }
       setRGB(set_r, set_g, set_b, set_no_dim);
+
+      if (radio)
+        RADIO_OUT_PORT |= (_BV(RADIO_OUT_PIN));
+      else
+        RADIO_OUT_PORT &= ~(_BV(RADIO_OUT_PIN));
 
       /*char str[16];
       itoa(adc_read(ADC_PIN), str, 10);
