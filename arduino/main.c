@@ -1,36 +1,32 @@
 /*
  *
- *            ----------------------------------
- *            |           ARDUINO UNO          |
- *            |            --------            |
- *            |            |      | PC5     A4 |
- *            |            |      | PC4     A5 |
- *            |            |      |       AREF |
- *            |            |      |        GND |
- *            |            |      | PB5    D13 | < QH (buttons) 
- *            | NC         |ATMEGA| PB4    D12 | > CLK (buttons)
- *            | IOREF      | 328P | PB3    D11 | > G channel (PWM)
- *            | 3V3        |      | PB2    D10 | > Horn, Alarm
- *            | 5V         |      | PB1     D9 | > R channel (PWM)
- *            | GND        |      | PB0     D8 | > SHLD (buttons)
- *            | GND        |      |            |
- *            | Vin        |      | PD7     D7 | > 12V radio enable 
- *            |            |      | PD6     D6 | > CLK (LED shift register)
- *            | A0     PC0 |      | PD5     D5 | > Data (LEDs shift register)
- *            | A1     PC1 |      | PD4     D4 | > TX (softuart RPi)
- *            | A2     PC2 |      | PD3     D3 | > B channel (PWM)
- *            | A3     PC3 |      | PD2     D2 | < RX (softuart RPi)
- *            | A4     PC4 |      | PD1     D1 | > TX (EJ22)
- *            | A5     PC5 |      | PD0     D0 | < RX (EJ22)
- *            |            --------            |
- *            |---------------------------------
+ *               ----------------------------------
+ *               |           ARDUINO UNO          |
+ *               |            --------            |
+ *               |            |      | PC5     A4 |
+ *               |            |      | PC4     A5 |
+ *               |            |      |       AREF |
+ *               |            |      |        GND |
+ *               |            |      | PB5    D13 | < QH (buttons) 
+ *               | NC         |ATMEGA| PB4    D12 | > CLK (buttons)
+ *               | IOREF      | 328P | PB3    D11 | > G channel (PWM)
+ *               | 3V3        |      | PB2    D10 | > Horn, Alarm
+ *               | 5V         |      | PB1     D9 | > R channel (PWM)
+ *               | GND        |      | PB0     D8 | > SHLD (buttons)
+ *               | GND        |      |            |
+ *               | Vin        |      | PD7     D7 | > 12V radio enable (front)
+ *               |            |      | PD6     D6 | > CLK (LED shift register)
+ *               | A0     PC0 |      | PD5     D5 | > Data (LEDs shift register)
+ *               | A1     PC1 |      | PD4     D4 | > TX (softuart RPi)
+ *   door open > | A2     PC2 |      | PD3     D3 | > B channel (PWM)
+ *   white LED < | A3     PC3 |      | PD2     D2 | < RX (softuart RPi)
+ *  car locked > | A4     PC4 |      | PD1     D1 | > TX (EJ22)
+ *      5V out < | A5     PC5 |      | PD0     D0 | < RX (EJ22)
+ *               |            --------            |
+ *               |---------------------------------
  *
  *  t.b.d.:
- *  - output: Radio enable 
- *  - output: 5V enable
  *  - input: doors open?
- *  - input: door locked?
- *  - output: alarm horn
  *  - ESP8622: - connection to the ESP8622??? RX / TX 
  *             - enable / disable?
  */
@@ -49,7 +45,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <avr/sfr_defs.h>
-
 
 // read of LEDs 
 // 2 pins for setting up to unlimited number 
@@ -92,6 +87,59 @@
 #define RADIO_OUT_PIN    PORTD7
 #define ALARM_OUT_PORT   PORTB
 #define ALARM_OUT_PIN    PORTB2
+#define FIVE_OUT_PORT    PORTC
+#define FIVE_OUT_PIN     PORTC5
+
+char *ftoa(char *buffer, double d, int precision) {
+
+	long wholePart = (long) d;
+
+	// Deposit the whole part of the number.
+
+	itoa(wholePart,buffer,10);
+
+	// Now work on the faction if we need one.
+
+	if (precision > 0) {
+
+		// We do, so locate the end of the string and insert
+		// a decimal point.
+
+		char *endOfString = buffer;
+		while (*endOfString != '\0') endOfString++;
+		*endOfString++ = '.';
+
+		// Now work on the fraction, be sure to turn any negative
+		// values positive.
+
+		if (d < 0) {
+			d *= -1;
+			wholePart *= -1;
+		}
+		
+		double fraction = d - wholePart;
+		while (precision > 0) {
+
+			// Multipleby ten and pull out the digit.
+
+			fraction *= 10;
+			wholePart = (long) fraction;
+			*endOfString++ = '0' + wholePart;
+
+			// Update the fraction and move on to the
+			// next digit.
+
+			fraction -= wholePart;
+			precision--;
+		}
+
+		// Terminate the string.
+
+		*endOfString = '\0';
+	}
+
+   return buffer;
+}
 
 void init_buttons(void) {
     /* In input mode, when pull-up is enabled, default state of pin becomes ’1′. So even if */
@@ -137,6 +185,10 @@ uint8_t set_led(uint8_t leds, bool cond, uint8_t pin) {
   return leds;
 }
 
+float myFloat = 1.23456;
+char myFloatStr[8];
+
+
 int main(void)
 {
     // init PWM LED output for stripes
@@ -147,7 +199,7 @@ int main(void)
     // PD7 = radio
     DDRD  = 0b11101000;   // PD3 outputs
     DDRB  = 0b00001110;   // PB1 PB3 PB5 outputs
-
+    DDRC  = 0b00101000;   // PC0 output
     init_buttons();
     
     uint8_t register_value;
@@ -170,7 +222,7 @@ int main(void)
     //PORTB = 0b00010001;   // pull-up for PB0, PB4
     //PORTB |= ( 1 << PB2 );        // Pullup Innenlicht
     //PORTB |= ( 1 << PB4 );        // Pullup Radio
-    //PORTC |= ( 1 << PC5 );        // Pullup Tuerkontakt
+    PORTC |= ( 1 << PC4 );        // Pullup Tuerkontakt
 
     // enable timer for PWM
     TCCR1A |= _BV(COM1A1) | _BV(COM1A0) | _BV(WGM10);
@@ -209,6 +261,7 @@ int main(void)
     uint8_t set_r = pwm_r;
     uint8_t set_g = pwm_g;
     uint8_t set_b = pwm_b;
+    bool white = false;
 
     // radio on button
     bool radio_on = false;
@@ -227,8 +280,12 @@ int main(void)
 
 	  for (;;) {
 
+      /*char str[16];
+      itoa(adc_read(PC2), str, 10);
+      softuart_puts(str);
+      softuart_puts("\n");
       // check if the doors are open
-      /*if (adc_read(PC5) > door_voltage_threshold)
+      if (adc_read(PC5) > door_voltage_threshold)
           doors_open = false;
       else
           doors_open = true;*/
@@ -329,18 +386,20 @@ int main(void)
       if ( softuart_kbhit() ) {
         c = softuart_getchar();
         switch(c) {
-          case(0x31): // "1" = all LED on
+          case(0x31): // "1" = all LED on 
+            white = true;
             pwm_r = 0x00;
             pwm_g = 0x00;
             pwm_b = 0x00;
             softuart_puts_P("OK\n");
             break;
-                  case(0x32): // "2" = all LED off
-                      pwm_r = 0xFF;
-                      pwm_g = 0xFF;
-                      pwm_b = 0xFF;
+          case(0x32): // "2" = all LED off
+            white = false;
+            pwm_r = 0xFF;
+            pwm_g = 0xFF;
+            pwm_b = 0xFF;
             softuart_puts_P("OK\n");
-                      break;
+            break;
           case(0x33): // "3" = Red light
             pwm_r = 0x00;
             pwm_g = 0xFF;
@@ -380,6 +439,16 @@ int main(void)
           set_no_dim = no_dim;
       }
       setRGB(set_r, set_g, set_b, set_no_dim);
+  
+      if (white) 
+        PORTC |= (_BV(PORTC3));
+      else 
+        PORTC &= ~(_BV(PORTC3));
+
+      if (five)
+        FIVE_OUT_PORT |= (_BV(FIVE_OUT_PIN));
+      else
+        FIVE_OUT_PORT &= ~(_BV(FIVE_OUT_PIN));
 
       if (radio)
         RADIO_OUT_PORT |= (_BV(RADIO_OUT_PIN));
@@ -390,13 +459,6 @@ int main(void)
         ALARM_OUT_PORT |= (_BV(ALARM_OUT_PIN));
       else
         ALARM_OUT_PORT &= ~(_BV(ALARM_OUT_PIN));
-      /*char str[16];
-      itoa(adc_read(ADC_PIN), str, 10);
-      str[5] = '\0';
-      _delay_ms(50);
-      softuart_puts(str);
-      softuart_puts_P("\n");*/
-
 	} // end for
 	
 	return 0; /* never reached */
