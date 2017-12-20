@@ -1,7 +1,7 @@
 import time
 import Adafruit_DHT
 
-pin = 24 // BCM numbering
+pin = 24 #BCM numbering
 sensor = 22
 
 while 1:
