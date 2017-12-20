@@ -188,9 +188,10 @@ uint8_t set_led(uint8_t leds, bool cond, uint8_t pin) {
 float myFloat = 1.23456;
 char myFloatStr[8];
 
-
+uint32_t cnt = 0;
 int main(void)
 {
+
     // init PWM LED output for stripes
     // PD3 = B
     // PB3 = G
@@ -209,6 +210,7 @@ int main(void)
     bool door_switch = false;
     bool five = false;
     bool alarm = false;
+    bool alarm_up = true;
     bool else1 = false;
     bool else2 = false;
     bool twotwenty = true;
@@ -279,6 +281,9 @@ int main(void)
     softuart_puts("here we go!\n");
 
 	  for (;;) {
+
+      // increment counter for several stuff
+      ++cnt;
 
       /*char str[16];
       itoa(adc_read(PC2), str, 10);
@@ -418,7 +423,14 @@ int main(void)
             pwm_b = 0x00;
             softuart_puts_P("OK\n");
             break;
-
+          case(0x36): // "6" = toggle alarm
+            alarm = !alarm;
+            softuart_puts_P("OK\n");
+            break;
+          case(0x37): // "7" = toggle radio
+            radio = !radio;
+            softuart_puts_P("OK\n");
+            break;
 
           default:
             softuart_puts_P("UNKNOWN\n");
@@ -438,13 +450,12 @@ int main(void)
           set_b = pwm_b;
           set_no_dim = no_dim;
       }
-      setRGB(set_r, set_g, set_b, set_no_dim);
-  
+      
       if (white) 
         PORTC |= (_BV(PORTC3));
       else 
         PORTC &= ~(_BV(PORTC3));
-
+      
       if (five)
         FIVE_OUT_PORT |= (_BV(FIVE_OUT_PIN));
       else
@@ -455,10 +466,26 @@ int main(void)
       else
         RADIO_OUT_PORT &= ~(_BV(RADIO_OUT_PIN));
 
-      if (alarm)
-        ALARM_OUT_PORT |= (_BV(ALARM_OUT_PIN));
-      else
+      if (alarm) {
+        if ((cnt%15000)==0) {
+          alarm_up = !alarm_up;
+        }
+        if (alarm_up)  {
+          ALARM_OUT_PORT |= (_BV(ALARM_OUT_PIN));
+          set_r = 0x00;
+        } else {
+          set_r = 0xFF;
+          ALARM_OUT_PORT &= ~(_BV(ALARM_OUT_PIN));
+        }
+        set_g = 0xFF;
+        set_b = 0xFF;
+        set_no_dim = true;
+      } else
         ALARM_OUT_PORT &= ~(_BV(ALARM_OUT_PIN));
+      
+      // set RGB values
+      setRGB(set_r, set_g, set_b, set_no_dim);
+  
 	} // end for
 	
 	return 0; /* never reached */
