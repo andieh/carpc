@@ -7,12 +7,17 @@ GPIO.setup(servoPIN, GPIO.OUT)
 
 p = GPIO.PWM(servoPIN, 50) # GPIO 17 als PWM mit 50Hz
 p.start(5) # Initialisierung
+
+# alter sportline 
+starti = 30
+endi = 120
+
 try:
   while True:
-    for i in range(30, 120, 1):
+    for i in range(starti, endi, 1):
         p.ChangeDutyCycle(i/float(10))
         time.sleep(0.02)
-    for i in range(120, 30, -1):
+    for i in range(endi, starti, -1):
         p.ChangeDutyCycle(i/float(10))
         time.sleep(0.02)
     

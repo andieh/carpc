@@ -5,6 +5,7 @@ __addon__        = xbmcaddon.Addon()
 __addonid__      = __addon__.getAddonInfo('id').decode( 'utf-8' )
 __addonname__    = __addon__.getAddonInfo('name').decode("utf-8")
 
+SERVO_PIN = 18
 class MyMonitor(xbmc.Monitor):
     def __init__(self, settings_callback):
         self.settings_callback = settings_callback
@@ -31,6 +32,15 @@ class Main(object):
     def cleanup(self):
         try:GPIO.remove_event_detect(self.pin)
         except: pass
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(SERVO_PIN, GPIO.OUT)
+        self.p = GPIO.PWM(SERVO_PIN, 50) # GPIO 17 als PWM mit 50Hz
+        self.p.start(5) # Initialisierung
+        self.p.ChangeDutyCycle(12)
+        time.sleep(1)
+        self.p.stop()
+
         try: GPIO.cleanup()
         except: pass
 
@@ -53,18 +63,13 @@ class Main(object):
         self.function = settings.getSetting("function").strip()
         self.silent = settings.getSetting("silent").strip()
 
-        servoPIN = 18
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(servoPIN, GPIO.OUT)
-
-        self.p = GPIO.PWM(servoPIN, 50) # GPIO 17 als PWM mit 50Hz
+        GPIO.setup(SERVO_PIN, GPIO.OUT)
+        self.p = GPIO.PWM(SERVO_PIN, 50) # GPIO 17 als PWM mit 50Hz
         self.p.start(5) # Initialisierung
         self.p.ChangeDutyCycle(3)
         time.sleep(1)
         self.p.stop()
-        time.sleep(1)
-        self.p.start(5)
-        self.p.ChangeDutyCycle(7)
         while 1:
             xbmc.log("andieh was here.....")
             break
