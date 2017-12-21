@@ -1,11 +1,16 @@
 import os, sys, time
 import xbmc, xbmcgui, xbmcaddon
+from threading import Thread
 
 __addon__        = xbmcaddon.Addon()
 __addonid__      = __addon__.getAddonInfo('id').decode( 'utf-8' )
 __addonname__    = __addon__.getAddonInfo('name').decode("utf-8")
 
-SERVO_PIN = 18
+SERVO_PIN           = 18
+POWER_PIN           = 5
+REARCAM_INPUT_PIN   = 27
+REARCAM_OUTPUT_PIN   = 6
+
 class MyMonitor(xbmc.Monitor):
     def __init__(self, settings_callback):
         self.settings_callback = settings_callback
@@ -19,6 +24,10 @@ class Main(object):
     edge = 0
     silent = 'false'
     function = ''
+    dialog_active = False   
+    running = True
+    dialog = None
+    rearcam_active = False
 
     def __init__(self):
         pass
@@ -26,34 +35,124 @@ class Main(object):
     def start(self):
         monitor = MyMonitor(self.on_settings_changed)
         self.setup()
+        self.thread = Thread(target=self.checker)
+        self.thread.setDaemon(True)
+        self.thread.start()
         monitor.waitForAbort()
+        self.running = False
+        self.finished = False
         self.cleanup()
 
-    def cleanup(self):
-        try:GPIO.remove_event_detect(self.pin)
-        except: pass
-
+    def checker(self):
+        self.log("start thread")
         GPIO.setmode(GPIO.BCM)
+
+        # set servo 
         GPIO.setup(SERVO_PIN, GPIO.OUT)
+        self.p = GPIO.PWM(SERVO_PIN, 50) # GPIO 17 als PWM mit 50Hz
+        self.p.start(5) # Initialisierung
+        self.p.ChangeDutyCycle(3)
+        time.sleep(1) # wait until position is reached
+    
+        # set power as in put
+        GPIO.setup(POWER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+
+        # check if rear gear is enabled
+        GPIO.setup(REARCAM_INPUT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(REARCAM_OUTPUT_PIN, GPIO.OUT)
+
+        while self.running:
+            power = GPIO.input(POWER_PIN)
+            if not power:
+                self.power_removed(power)
+
+            self.check_rearcam()
+
+            time.sleep(0.01)
+
         self.p = GPIO.PWM(SERVO_PIN, 50) # GPIO 17 als PWM mit 50Hz
         self.p.start(5) # Initialisierung
         self.p.ChangeDutyCycle(12)
         time.sleep(1)
         self.p.stop()
 
-        try: GPIO.cleanup()
-        except: pass
+        self.finished = True
+
+    def cleanup(self):
+        self.log("cleanup called, wait for thread to finish")
+        cnt = 0
+        self.running = False
+        while not self.finished:
+            cnt += 1
+            time.sleep(0.1)
+            if cnt > 15:
+                self.log("abort waiting")
+                break
+
+        self.log("cleanup GPIO")
+        try: 
+            GPIO.cleanup()
+        except: 
+            pass
 
     def on_settings_changed(self):
-        self.cleanup()
-        self.setup()
+        pass
+        #    self.cleanup()
+        #    self.setup()
 
-    def pin_callback(self, pin):
-        if self.silent == 'false':
-            dialog = xbmcgui.Dialog()
-            dialog.notification(__addonname__, 'Executing %s' % self.function, xbmcgui.NOTIFICATION_INFO, 2000)
-        time.sleep(0.5)
-        xbmc.executebuiltin(self.function)
+    def log(self, txt):
+        print("[GPIO-CHECK] {}".format(txt))
+
+    def check_rearcam(self):
+        state = GPIO.input(REARCAM_INPUT_PIN)
+        current = time.time()
+        diff = current-self.rearcam_active
+        if self.rearcam_active and not state: # cam started and rear active
+            self.log("rear cam already active for {}s!".format(diff))
+            self.rearcam_active = current
+            time.sleep(1)   
+            return 
+        
+        elif self.rearcam_active and state: # cam started and not in rear mode
+            if diff < 10:
+                self.log("wait until switch off camera ({}s)".format(diff))
+                time.sleep(1)
+                return 
+            self.log("rear gear switched, turn off camera")
+            GPIO.output(REARCAM_OUTPUT_PIN, 0)
+            self.rearcam_active = False
+            time.sleep(1)
+            return
+        
+        elif not state: # start cam
+            self.log("i need to start the cam!")
+            GPIO.output(REARCAM_OUTPUT_PIN, 1)
+            #xbmc.executebuiltin("RunScript(plugin.program.rearcam)")
+            xbmc.executebuiltin("XBMC.RunScript(/home/pi/carpc/raspi/plugin.program.rearcam/addon.py)")
+            self.rearcam_active = time.time()
+            time.sleep(1)
+            return 
+            
+        else: # nothing to do, return
+            return 
+
+        self.log("this should never happen!")
+
+    def power_removed(self, value):
+        """
+        power to the system was removed
+        """
+        if self.dialog_active:
+            return 
+
+        self.dialog_active = True
+        self.log("power triggered, value is {}".format(value))
+        self.dialog = xbmcgui.Dialog()
+        print(dir(self.dialog))
+        if self.dialog.yesno(heading="Power removed", line1="Power was removed", line2="Shutdown System?"):
+            os.system("sudo shutdown -h now")   
+        self.dialog_active = False
+        self.dialog = None
 
     def setup(self):
         settings = xbmcaddon.Addon()
@@ -62,40 +161,16 @@ class Main(object):
         self.edge = int(settings.getSetting("edge"))
         self.function = settings.getSetting("function").strip()
         self.silent = settings.getSetting("silent").strip()
-
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(SERVO_PIN, GPIO.OUT)
-        self.p = GPIO.PWM(SERVO_PIN, 50) # GPIO 17 als PWM mit 50Hz
-        self.p.start(5) # Initialisierung
-        self.p.ChangeDutyCycle(3)
-        time.sleep(1)
-        self.p.stop()
-        while 1:
-            xbmc.log("andieh was here.....")
-            break
-            time.sleep(1)
-            
-        if self.pin == 0:
-            return
-
-        try:
-            GPIO.setmode(GPIO.BOARD)
-
-            if self.edge == 1:
-                GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-                GPIO.add_event_detect(self.pin, GPIO.RISING, callback=self.pin_callback)
-            else:
-                GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-                GPIO.add_event_detect(self.pin, GPIO.FALLING, callback=self.pin_callback)
-        except:
-            dialog = xbmcgui.Dialog()
-            dialog.notification(__addonname__, 'Error setting up pin: %s' % self.pin, xbmcgui.NOTIFICATION_ERROR, 2000)
-
+        #self.cleanup()
+        
 if __name__ == '__main__':
     dialog = xbmcgui.Dialog()
     import RPi.GPIO as GPIO
 
+    print("init gpio check")
     #dialog.ok(__addonname__, "Was geht ab?", "alter sack")
 
     main = Main()
+    print("main created")
     main.start()
+    print("start ended")
