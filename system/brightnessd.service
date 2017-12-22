@@ -1,0 +1,8 @@
+[Unit]
+After=
+
+[Service]
+ExecStart=/home/pi/carpc/system/set_brightness.sh
+
+[Install]
+WantedBy=default.target

@@ -7,7 +7,9 @@ __addonid__      = __addon__.getAddonInfo('id').decode( 'utf-8' )
 __addonname__    = __addon__.getAddonInfo('name').decode("utf-8")
 
 SERVO_PIN           = 18
-POWER_PIN           = 5
+POWER_12_PIN        = 5
+POWER_5_PIN         = 21
+POWER_OUT_PIN       = 20
 REARCAM_INPUT_PIN   = 27
 REARCAM_OUTPUT_PIN   = 6
 
@@ -24,6 +26,7 @@ class Main(object):
     edge = 0
     silent = 'false'
     function = ''
+    ignore_power = False
     dialog_active = False   
     running = True
     dialog = None
@@ -55,16 +58,23 @@ class Main(object):
         time.sleep(1) # wait until position is reached
     
         # set power as in put
-        GPIO.setup(POWER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        self.log("init power stuff")
+        GPIO.setup(POWER_12_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(POWER_5_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.setup(POWER_OUT_PIN, GPIO.OUT)
+        GPIO.output(POWER_OUT_PIN, 1)
 
         # check if rear gear is enabled
         GPIO.setup(REARCAM_INPUT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
         GPIO.setup(REARCAM_OUTPUT_PIN, GPIO.OUT)
 
         while self.running:
-            power = GPIO.input(POWER_PIN)
-            if not power:
-                self.power_removed(power)
+            power12 = GPIO.input(POWER_12_PIN) # low active
+            power5  = GPIO.input(POWER_5_PIN)  # low active
+            if power12 and power5 and not self.ignore_power: # both power removed!
+                self.power_removed()
+            elif not power12 or not power5:
+                self.ignore_power = False
 
             self.check_rearcam()
 
@@ -138,7 +148,7 @@ class Main(object):
 
         self.log("this should never happen!")
 
-    def power_removed(self, value):
+    def power_removed(self):
         """
         power to the system was removed
         """
@@ -146,11 +156,14 @@ class Main(object):
             return 
 
         self.dialog_active = True
-        self.log("power triggered, value is {}".format(value))
+        self.log("power triggered")
         self.dialog = xbmcgui.Dialog()
         print(dir(self.dialog))
         if self.dialog.yesno(heading="Power removed", line1="Power was removed", line2="Shutdown System?"):
+            GPIO.output(POWER_OUT_PIN, 0)
             os.system("sudo shutdown -h now")   
+        else:
+            self.ignore_power = True
         self.dialog_active = False
         self.dialog = None
 
