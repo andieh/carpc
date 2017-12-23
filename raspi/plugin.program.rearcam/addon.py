@@ -81,24 +81,6 @@ class clickHandlerClass(threading.Thread):
             # Don't kill the CPU
             time.sleep(2)
 
-class RunStream(threading.Thread):
-    def setParent(self, parent):
-        self.mplayer_pid = None
-        self.parent = parent
-
-    def getPid(self):
-        return self.mplayer_pid
-
-    def run(self):
-        cmd = "/usr/bin/mplayer -vo x11 -fs -nosound tv:// -tv driver=v4l2:norm=NTSC:width=720:height=576:device=/dev/video0:input=0".split()
-        proc = subprocess.Popen(cmd)
-        self.mplayer_pid = proc.pid
-        print("PID: {}".format(self.mplayer_pid))
-        proc.wait()
-        print("mplayer process finished, going back!")
-        self.mplayer_pid = None
-        #self.parent.onControl(self.parent.button_back)
-
 class navigation(xbmcgui.WindowDialog):
     def __init__(self):
         os.system("DISPLAY=:0 xdotool mousemove 32 90 click 1&")
@@ -140,8 +122,10 @@ class navigation(xbmcgui.WindowDialog):
         #self.clickHandlerThread = clickHandlerClass()
         #self.clickHandlerThread.start()
 
-        cmd = "DISPLAY=:0 /usr/bin/mplayer -vo x11 -fs -nosound tv:// -tv driver=v4l2:norm=NTSC:width=720:height=576:device=/dev/video0:input=0&"
+        cmd = "DISPLAY=:0 /usr/bin/mplayer -vo x11 -fs -nosound --no-correct-pts --fps=15 -framedrop tv:// -tv driver=v4l2:norm=NTSC:width=720:height=576:device=/dev/video0:input=0"
         os.system(cmd)
+        self.onControl(self.button_click)
+        self.onControl(self.button_back)
 
     def onControl(self, controlID):
         os.system("DISPLAY=:0 xdotool key q")

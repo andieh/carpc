@@ -30,7 +30,9 @@ class Main(object):
     dialog_active = False   
     running = True
     dialog = None
+
     rearcam_active = False
+    rearcam_thread = None
 
     def __init__(self):
         pass
@@ -113,6 +115,11 @@ class Main(object):
     def log(self, txt):
         print("[GPIO-CHECK] {}".format(txt))
 
+    def start_rearcam(self):
+        #xbmc.executebuiltin("RunScript(plugin.program.rearcam)")
+        xbmc.executebuiltin("XBMC.RunScript(/home/pi/carpc/raspi/plugin.program.rearcam/addon.py)")
+        self.log("rearcam plugin finished")
+
     def check_rearcam(self):
         state = GPIO.input(REARCAM_INPUT_PIN)
         current = time.time()
@@ -129,6 +136,9 @@ class Main(object):
                 time.sleep(1)
                 return 
             self.log("rear gear switched, turn off camera")
+            os.system("killall mplayer")
+            self.rearcam_thread.join()
+            self.rearcam_thread = None
             GPIO.output(REARCAM_OUTPUT_PIN, 0)
             self.rearcam_active = False
             time.sleep(1)
@@ -137,8 +147,9 @@ class Main(object):
         elif not state: # start cam
             self.log("i need to start the cam!")
             GPIO.output(REARCAM_OUTPUT_PIN, 1)
-            #xbmc.executebuiltin("RunScript(plugin.program.rearcam)")
-            xbmc.executebuiltin("XBMC.RunScript(/home/pi/carpc/raspi/plugin.program.rearcam/addon.py)")
+            self.rearcam_thread = Thread(target=self.start_rearcam)
+            self.rearcam_thread.setDaemon(True)
+            self.rearcam_thread.start()
             self.rearcam_active = time.time()
             time.sleep(1)
             return 
