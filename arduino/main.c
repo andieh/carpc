@@ -29,6 +29,20 @@
  *  - input: doors open?
  *  - ESP8622: - connection to the ESP8622??? RX / TX 
  *             - enable / disable?
+ *
+ *
+ * BUTTONS:
+ *  ----------------------------------------------
+ *  |              |              |              |
+ *  |   inlight    |    alarm     |     dim+     |
+ *  |              |              |              |
+ *  ----------------------------------------------
+ *  |              |              |              |
+ *  |  5V enable   |    radio     |     dim-     |
+ *  |              |              |              |
+ *  |              |              |              |
+ *  ----------------------------------------------
+ *
  */
 
 
@@ -57,14 +71,14 @@
 #define DP_PIN  PORTD6 // data
 #define DP_PORT PORTD 
 // definition of the position of led to set
-#define LED_PIN_RADIO  0 // enable radio
-#define LED_PIN_LIGHTS 1 // enable light inside
-#define LED_PIN_FIVE   2 // 5 volt rail enabled?
-#define LED_PIN_ALARM  3 // enable / disable alarm
-#define LED_PIN_ELSE1  4 // t.b.d.
-#define LED_PIN_ELSE2  5 // t.b.d.
-#define LED_PIN_POWER  6 // shows a 220V connection
-#define LED_PIN_VISU   7 // display only led (tbd.)  
+#define LED_RADIO  0 // enable radio
+#define LED_WHITE  1 // enable light inside
+#define LED_ELSE2  2 // 5 volt rail enabled?
+#define LED_ALARM  3 // enable / disable alarm
+#define LED_ELSE1  4 // t.b.d.
+#define LED_FIVE   5 // t.b.d.
+#define LED_POWER  6 // shows a 220V connection
+#define LED_VISU   7 // display only led (tbd.)  
  
 // button connection definition
 // 3 pins for reading up to 8 buttons
@@ -264,6 +278,9 @@ int main(void)
     uint8_t set_g = pwm_g;
     uint8_t set_b = pwm_b;
     bool white = false;
+    uint32_t white_cnt = 0;
+    uint32_t white_max = 300;
+    uint32_t white_duty = white_max / 2;
 
     // radio on button
     bool radio_on = false;
@@ -284,6 +301,7 @@ int main(void)
 
       // increment counter for several stuff
       ++cnt;
+      ++white_cnt;
 
       /*char str[16];
       itoa(adc_read(PC2), str, 10);
@@ -304,14 +322,14 @@ int main(void)
       
       bool inlight = (light || doors_open);
       uint8_t new_leds = 0b00000000;
-      new_leds = set_led(new_leds, radio, LED_PIN_RADIO);
-      new_leds = set_led(new_leds, inlight, LED_PIN_LIGHTS);
-      new_leds = set_led(new_leds, five,  LED_PIN_FIVE);
-      new_leds = set_led(new_leds, alarm, LED_PIN_ALARM);
-      new_leds = set_led(new_leds, else1, LED_PIN_ELSE1);
-      new_leds = set_led(new_leds, else2, LED_PIN_ELSE2);
-      new_leds = set_led(new_leds, twotwenty, LED_PIN_POWER);
-      new_leds = set_led(new_leds, unknown, LED_PIN_VISU);
+      new_leds = set_led(new_leds, radio, LED_RADIO);
+      new_leds = set_led(new_leds, white, LED_WHITE);
+      new_leds = set_led(new_leds, five,  LED_FIVE);
+      new_leds = set_led(new_leds, alarm, LED_ALARM);
+      new_leds = set_led(new_leds, else1, LED_ELSE1);
+      new_leds = set_led(new_leds, else2, LED_ELSE2);
+      new_leds = set_led(new_leds, twotwenty, LED_POWER);
+      new_leds = set_led(new_leds, unknown, LED_VISU);
       if (new_leds != leds) {
         set_leds(new_leds);
         leds = new_leds;
@@ -323,22 +341,22 @@ int main(void)
         pin_value = digital_read(PIN_QH, QH);  
         register_value |= (pin_value << ((8 - 1) - i));          
         if (i==2) {
-          if (!five && pin_value) {
+          if (pin_value) {
+            PORTC &= ~(_BV(PORTC3));
+            white_duty -= 10;
+            if (white_duty <= 10)
+              white_duty = 10;
             _delay_ms(delayAfterPress);
-            five = true;
-          } else if (five && pin_value) {
-            _delay_ms(delayAfterPress);
-            five = false;
           }
         }
         
         else if (i==3) {
-          if (!else1 && pin_value) {
+          if (pin_value) {
+            PORTC &= ~(_BV(PORTC3));
+            white_duty += 10;
+            if (white_duty >= white_max)
+              white_duty = white_max;
             _delay_ms(delayAfterPress);
-            else1 = true;
-          } else if (else1 && pin_value) {
-            _delay_ms(delayAfterPress);
-            else1 = false;
           }
         }
 
@@ -346,6 +364,7 @@ int main(void)
           if (!alarm && pin_value) {
             _delay_ms(delayAfterPress);
             alarm = true;
+            white = false;
           } else if (alarm && pin_value) {
             _delay_ms(delayAfterPress);
             alarm = false;
@@ -363,22 +382,22 @@ int main(void)
         }
         
         else if (i==6) {
-          if (!else2 && pin_value) {
+          if (!five && pin_value) {
             _delay_ms(delayAfterPress);
-            else2 = true;
-          } else if (else2 && pin_value) {
+            five = true;
+          } else if (five && pin_value) {
             _delay_ms(delayAfterPress);
-            else2 = false;
+            five = false;
           }
         }
         
         else if (i==7) {
-          if (!light && pin_value) {
+          if (!white && pin_value) {
             _delay_ms(delayAfterPress);
-            light = true;
-          } else if (light && pin_value) {
+            white = true;
+          } else if (white && pin_value) {
             _delay_ms(delayAfterPress);
-            light = false;
+            white = false;
           }
         }
         // Pulse clock input (CP) LOW-HIGH to read next bit.
@@ -391,6 +410,13 @@ int main(void)
       if ( softuart_kbhit() ) {
         c = softuart_getchar();
         switch(c) {
+          case(0x30): // "0" = white LED on
+            white = true;
+            pwm_r = 0xFF;
+            pwm_g = 0xFF;
+            pwm_b = 0xFF;
+            softuart_puts_P("OK\n");
+            break;
           case(0x31): // "1" = all LED on 
             white = true;
             pwm_r = 0x00;
@@ -406,18 +432,21 @@ int main(void)
             softuart_puts_P("OK\n");
             break;
           case(0x33): // "3" = Red light
+            white = false;
             pwm_r = 0x00;
             pwm_g = 0xFF;
             pwm_b = 0xFF;
             softuart_puts_P("OK\n");
             break;
           case(0x34): // "4" = Green light
+            white = false;
             pwm_r = 0xFF;
             pwm_g = 0x00;
             pwm_b = 0xFF;
             softuart_puts_P("OK\n");
             break;
           case(0x35): // "5" = Blue light
+            white = false;
             pwm_r = 0xFF;
             pwm_g = 0xFF;
             pwm_b = 0x00;
@@ -432,9 +461,8 @@ int main(void)
             softuart_puts_P("OK\n");
             break;
 
-          default:
-            softuart_puts_P("UNKNOWN\n");
-            break;
+          //default:
+            //softuart_puts_P("UNKNOWN\n");
         }
       }
 
@@ -450,10 +478,15 @@ int main(void)
           set_b = pwm_b;
           set_no_dim = no_dim;
       }
-      
-      if (white) 
-        PORTC |= (_BV(PORTC3));
-      else 
+
+      if (white) {
+        if (white_cnt > white_max) 
+          white_cnt = 0;
+        if (white_cnt < white_duty)
+          PORTC |= (_BV(PORTC3));
+        else
+          PORTC &= ~(_BV(PORTC3));
+      } else 
         PORTC &= ~(_BV(PORTC3));
       
       if (five)
@@ -467,7 +500,7 @@ int main(void)
         RADIO_OUT_PORT &= ~(_BV(RADIO_OUT_PIN));
 
       if (alarm) {
-        if ((cnt%15000)==0) {
+        if ((cnt%12000)==0) {
           alarm_up = !alarm_up;
         }
         if (alarm_up)  {
