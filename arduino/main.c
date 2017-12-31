@@ -525,6 +525,20 @@ int main(void)
               set_no_dim = true;
             }
             break;
+          case(0x41): // "A" = increase white duty
+            white = true;
+            white_duty += 10;
+            if (white_duty > white_max)
+              white_duty = white_max;
+            softuart_puts_P("OK\n");
+            break;
+          case(0x42): // "B" = decrease white duty
+            white = true;
+            if (white_duty > 10)
+              white_duty -= 10;
+            softuart_puts_P("OK\n");
+            break;
+
 
           //default:
             //softuart_puts_P("UNKNOWN\n");
