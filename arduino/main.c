@@ -277,10 +277,12 @@ int main(void)
     uint8_t set_r = pwm_r;
     uint8_t set_g = pwm_g;
     uint8_t set_b = pwm_b;
+    
     bool white = false;
     uint32_t white_cnt = 0;
     uint32_t white_max = 300;
     uint32_t white_duty = white_max / 2;
+    uint32_t white_fade_on = white_max;
 
     // radio on button
     bool radio_on = false;
@@ -395,6 +397,7 @@ int main(void)
           if (!white && pin_value) {
             _delay_ms(delayAfterPress);
             white = true;
+            white_fade_on = 0;
           } else if (white && pin_value) {
             _delay_ms(delayAfterPress);
             white = false;
@@ -480,8 +483,14 @@ int main(void)
       }
 
       if (white) {
-        if (white_cnt > white_max) 
+        if (white_cnt > white_max) {
           white_cnt = 0;
+          if (white_fade_on < white_max) {
+            white_fade_on += 10;
+            white_duty = white_fade_on;
+          }
+        }
+
         if (white_cnt < white_duty)
           PORTC |= (_BV(PORTC3));
         else
