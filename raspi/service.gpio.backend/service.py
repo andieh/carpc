@@ -27,9 +27,8 @@ class Main(object):
     silent = 'false'
     function = ''
     ignore_power = False
-    dialog_active = False   
     running = True
-    dialog = None
+    power_dialog = None
 
     rearcam_active = False
     rearcam_thread = None
@@ -76,7 +75,7 @@ class Main(object):
             if power12 and power5 and not self.ignore_power: # both power removed!
                 self.power_removed()
             elif not power12 or not power5:
-                self.ignore_power = False
+                self.power_active()
 
             self.check_rearcam()
 
@@ -159,25 +158,37 @@ class Main(object):
 
         self.log("this should never happen!")
 
+    def power_active(self):
+        self.ignore_power = False
+        if self.power_dialog:
+            self.power_dialog.close()
+            self.power_dialog = None
+
     def power_removed(self):
         """
         power to the system was removed
         """
-        if self.dialog_active:
+        if self.power_dialog:
+            if self.power_dialog.iscanceled():
+                self.ignore_power = True
+                self.power_dialog.close()
+                self.power_dialog = None
+                return
+
+            WAIT_TIME = 30
+            diff = time.time() - self.power_time
+            p = int((1-(diff / float(WAIT_TIME)))*100)
+            if p < 0:
+                GPIO.output(POWER_OUT_PIN, 0)
+                os.system("sudo shutdown -h now")
+            self.power_dialog.update(p)
             return 
 
-        self.dialog_active = True
         self.log("power triggered")
-        self.dialog = xbmcgui.Dialog()
-        print(dir(self.dialog))
-        if self.dialog.yesno(heading="Power removed", line1="Power was removed", line2="Shutdown System?"):
-            GPIO.output(POWER_OUT_PIN, 0)
-            os.system("sudo shutdown -h now")   
-        else:
-            self.ignore_power = True
-        self.dialog_active = False
-        self.dialog = None
-
+        self.power_dialog = xbmcgui.DialogProgress()
+        self.power_dialog.create(heading="Power removed", line1="Power was removed, system will shutdown in 30s.", line2="Press Cancel to abort shutdown progress")
+        self.power_time = time.time()
+            
     def setup(self):
         settings = xbmcaddon.Addon()
 

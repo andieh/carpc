@@ -219,7 +219,7 @@ int main(void)
     
     uint8_t register_value;
     uint8_t pin_value;
-    bool radio = false;
+    bool radio = true; //false;
     bool light = false;
     bool door_switch = false;
     bool five = false;
@@ -262,7 +262,11 @@ int main(void)
     uint8_t pwm_b = 0xFF; // led off B
     
     // init softuart transmission
-    char c;
+    char c = 0; // todo rename me
+    bool bus_receive = false;
+    uint8_t bus_argc = 0;
+    uint8_t bus_arg = 0;
+    char bus_command = 0;
     softuart_init();
     softuart_turn_rx_on(); /* redundant - on by default */
     sei();
@@ -409,10 +413,44 @@ int main(void)
       }
 
       
-      // UART communication with the raspberry pi
-      if ( softuart_kbhit() ) {
+      // UART communication raspberry pi <-> arduino
+      // simple protocol is implemented, each command must start
+      // with '<' and end with '>'. '|' is the seperator char.
+      // for example, "<1>" will enable all LEDs.
+      while ( softuart_kbhit() ) {
         c = softuart_getchar();
-        switch(c) {
+        if (c == 0x3c) {
+          //softuart_puts_P("start receiving\n");
+          bus_receive = true;
+          bus_argc = 0;
+          continue;
+        }
+
+        else if (!bus_receive)
+          break;
+
+        else if (c == 0x3e) {
+          //softuart_puts_P("stop receiving\n");
+          bus_receive = false;
+          bus_argc = 0;
+          break;
+        }
+
+        else if (c == 0x7c) {
+          ++bus_argc;
+          continue;
+        } 
+        
+        else {
+            if (bus_argc > 0) {
+                bus_arg = c;
+            } 
+            else {
+                bus_command = c;
+            }
+        }
+   
+        switch(bus_command) {
           case(0x30): // "0" = white LED on
             white = true;
             pwm_r = 0xFF;
@@ -462,6 +500,30 @@ int main(void)
           case(0x37): // "7" = toggle radio
             radio = !radio;
             softuart_puts_P("OK\n");
+            break;
+          case(0x38): // "8" = red to a given value
+            if (bus_argc > 0) {
+              white = false;
+              pwm_r = bus_arg;
+              set_no_dim = true;
+              softuart_puts_P("set red!\n");
+            }
+            break;
+          case(0x39): // "9" = green to a given value
+            if (bus_argc > 0) {
+              white = false;
+              pwm_g = bus_arg;
+              set_no_dim = true;
+              softuart_puts_P("set green!\n");
+            }
+            break;
+          case(0x40): // "@" = blue to a given value
+            if (bus_argc > 0) {
+              white = false;
+              pwm_b = bus_arg;
+              softuart_puts_P("set blue!\n");
+              set_no_dim = true;
+            }
             break;
 
           //default:

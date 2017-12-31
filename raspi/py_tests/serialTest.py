@@ -1,5 +1,6 @@
 import serial
 import time 
+import random
 from thread import start_new_thread
 
 class CarPC:
@@ -36,10 +37,27 @@ if __name__ == "__main__":
     car = CarPC()
     start_new_thread(car.listen, ())
     
+    colorChange = False
+    cnt = 0
     while 1:
-        nc = raw_input()
-        if nc:
-            car.send(nc)
+        if colorChange:
+            car.send("<8|{:c}>".format(random.randint(0,255)))
+            car.send("<9|{:c}>".format(random.randint(0,255)))
+            car.send("<@|{:c}>".format(random.randint(0,255)))
+            time.sleep(0.2)
+            cnt += 1
+            if cnt < 0:# 255:
+                print("color change finished")
+                colorChange = False
+                                   
+        else:
+            nc = raw_input()
+            if nc:
+                if nc == "colorChange":
+                    colorChange = True
+                    continue
+
+                car.send(nc)
 
     car.close()
 

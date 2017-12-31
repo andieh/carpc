@@ -35,6 +35,10 @@ class MyAddon(pyxbmct.AddonFullWindow):
         self.connect(pyxbmct.ACTION_NAV_BACK, self.close)
         start_new_thread(self.update_labels, ())
 
+        #print("was geht ab")
+        #xbmc.executebuiltin("XBMC.RunScript(script.skin.helper.colorpicker,skinstring=MySkinString)");
+        #print("was geht ab")
+
     def init_controls(self):
         self.placeControl(pyxbmct.Label('Continuous Parameters', alignment=pyxbmct.ALIGN_CENTER), 0, 0, 1, 4)
         
