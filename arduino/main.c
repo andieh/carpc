@@ -17,7 +17,7 @@
  *               | Vin        |      | PD7     D7 | > 12V radio enable (front)
  *               |            |      | PD6     D6 | > CLK (LED shift register)
  *               | A0     PC0 |      | PD5     D5 | > Data (LEDs shift register)
- *               | A1     PC1 |      | PD4     D4 | > TX (softuart RPi)
+ *   220V avail  | A1     PC1 |      | PD4     D4 | > TX (softuart RPi)
  *   door open > | A2     PC2 |      | PD3     D3 | > B channel (PWM)
  *   white LED < | A3     PC3 |      | PD2     D2 | < RX (softuart RPi)
  *  car locked > | A4     PC4 |      | PD1     D1 | > TX (EJ22)
@@ -78,7 +78,7 @@
 #define LED_ELSE1  4 // t.b.d.
 #define LED_FIVE   5 // t.b.d.
 #define LED_POWER  6 // shows a 220V connection
-#define LED_VISU   7 // display only led (tbd.)  
+#define LED_LOCKED   7 // display locked car
  
 // button connection definition
 // 3 pins for reading up to 8 buttons
@@ -202,7 +202,7 @@ uint8_t set_led(uint8_t leds, bool cond, uint8_t pin) {
 float myFloat = 1.23456;
 char myFloatStr[8];
 
-uint32_t cnt = 0;
+uint32_t alarm_cnt = 0;
 int main(void)
 {
 
@@ -214,31 +214,26 @@ int main(void)
     // PD7 = radio
     DDRD  = 0b11101000;   // PD3 outputs
     DDRB  = 0b00001110;   // PB1 PB3 PB5 outputs
-    DDRC  = 0b00101000;   // PC0 output
+    //DDRC  = 0b00101000;   // PC0 output
     init_buttons();
     
     uint8_t register_value;
     uint8_t pin_value;
     bool radio = true; //false;
-    bool light = false;
-    bool door_switch = false;
     bool five = false;
     bool alarm = false;
     bool alarm_up = true;
     bool else1 = false;
     bool else2 = false;
-    bool twotwenty = true;
-    bool unknown = true;
+    bool twotwenty = false;
+    bool locked = false;
 
     // input buttons on port B
     //DDRB = 0x00;        // Port B are all inputs
     //PORTB = 0xFF;       // enable all pull-ups
-
-    //DDRB &= ~( 1 << PB0 );        /* PIN PB0 auf Eingang Taster)  */
-    //PORTB = 0b00010001;   // pull-up for PB0, PB4
-    //PORTB |= ( 1 << PB2 );        // Pullup Innenlicht
-    //PORTB |= ( 1 << PB4 );        // Pullup Radio
-    PORTC |= ( 1 << PC4 );        // Pullup Tuerkontakt
+    PORTC |= ( 1 << PC1 );        // Pullup 220V detection
+    PORTC |= ( 1 << PC2 );        // Pullup doors
+    PORTC |= ( 1 << PC4 );        // Pullup car locked
 
     // enable timer for PWM
     TCCR1A |= _BV(COM1A1) | _BV(COM1A0) | _BV(WGM10);
@@ -254,7 +249,6 @@ int main(void)
     TCCR2B = _BV(CS20);                                                
 
     // Enable the ADC
-    uint16_t door_voltage_threshold = 200;
     ADCSRA |= _BV(ADEN);
 
     uint8_t pwm_r = 0xFF; // led off R
@@ -285,28 +279,22 @@ int main(void)
     bool white = false;
     uint32_t white_cnt = 0;
     uint32_t white_max = 300;
-    uint32_t white_duty = white_max / 2;
-    uint32_t white_fade_on = white_max;
-
-    // radio on button
-    bool radio_on = false;
+    uint32_t white_duty = 0;
+    uint32_t white_current = 0;
 
     // doors are open
     bool doors_open = false;
 
-    //static bool animateState = false;
-    static bool animateState[3] = {false, false, false};
-    static uint8_t animatePos = 1;
-
-    uint16_t animateCnt = 1;
-
     // lets start everything
     softuart_puts("here we go!\n");
+    
+    uint8_t delayAfterPress = 200;
+    bool inlight = false;
 
 	  for (;;) {
 
       // increment counter for several stuff
-      ++cnt;
+      ++alarm_cnt;
       ++white_cnt;
 
       /*char str[16];
@@ -319,6 +307,39 @@ int main(void)
       else
           doors_open = true;*/
 
+      // check if the car is locked
+      if (!bit_is_set(PINC, PC4)) {
+        if (!locked)
+          _delay_ms(delayAfterPress);
+        locked = true;
+      } else {
+        if (locked)
+          _delay_ms(delayAfterPress);
+        locked = false;
+      }
+
+      // check if the doors are open
+      if (!bit_is_set(PINC, PC2)) {
+        if (!doors_open)
+          _delay_ms(delayAfterPress);
+        doors_open = true;
+      } else {
+        if (doors_open)
+          _delay_ms(delayAfterPress);
+        doors_open = false;
+      }
+
+      // check if 220V supply is available
+      if (!bit_is_set(PINC, PC1)) {
+        if (!twotwenty)
+          _delay_ms(delayAfterPress);
+        twotwenty = true;
+      } else {
+        if (twotwenty)
+          _delay_ms(delayAfterPress);
+        twotwenty = false;
+      }
+
       /* Read in parallel input by setting SH/LD low. */
       digital_write(&PORT_SHLD, SHLD, 0); 
       /* Freeze data by setting SH/LD high. When SH/LD is high data enters */
@@ -326,22 +347,6 @@ int main(void)
       /* (Q0 -> Q1 -> Q2, etc.) with each positive-going clock transition. */
       digital_write(&PORT_SHLD, SHLD, 1);
       
-      bool inlight = (light || doors_open);
-      uint8_t new_leds = 0b00000000;
-      new_leds = set_led(new_leds, radio, LED_RADIO);
-      new_leds = set_led(new_leds, white, LED_WHITE);
-      new_leds = set_led(new_leds, five,  LED_FIVE);
-      new_leds = set_led(new_leds, alarm, LED_ALARM);
-      new_leds = set_led(new_leds, else1, LED_ELSE1);
-      new_leds = set_led(new_leds, else2, LED_ELSE2);
-      new_leds = set_led(new_leds, twotwenty, LED_POWER);
-      new_leds = set_led(new_leds, unknown, LED_VISU);
-      if (new_leds != leds) {
-        set_leds(new_leds);
-        leds = new_leds;
-      }
-
-      uint8_t delayAfterPress = 200;
       register_value = 0;
       for(uint8_t i=0; i<8; i++) {
         pin_value = digital_read(PIN_QH, QH);  
@@ -349,9 +354,10 @@ int main(void)
         if (i==2) {
           if (pin_value) {
             PORTC &= ~(_BV(PORTC3));
-            white_duty -= 10;
-            if (white_duty <= 10)
-              white_duty = 10;
+            if (white_duty < 10)
+              white_duty = 0;
+            else 
+              white_duty -= 10;
             _delay_ms(delayAfterPress);
           }
         }
@@ -401,7 +407,6 @@ int main(void)
           if (!white && pin_value) {
             _delay_ms(delayAfterPress);
             white = true;
-            white_fade_on = 0;
           } else if (white && pin_value) {
             _delay_ms(delayAfterPress);
             white = false;
@@ -520,22 +525,23 @@ int main(void)
           case(0x40): // "@" = blue to a given value
             if (bus_argc > 0) {
               white = false;
+              pwm_g = bus_arg;
               pwm_b = bus_arg;
               softuart_puts_P("set blue!\n");
               set_no_dim = true;
             }
             break;
           case(0x41): // "A" = increase white duty
-            white = true;
-            white_duty += 10;
+            white_duty += 50;
             if (white_duty > white_max)
               white_duty = white_max;
             softuart_puts_P("OK\n");
             break;
           case(0x42): // "B" = decrease white duty
-            white = true;
-            if (white_duty > 10)
-              white_duty -= 10;
+            if (white_duty < 50)
+              white_duty = 0;
+            else 
+              white_duty -= 50;
             softuart_puts_P("OK\n");
             break;
 
@@ -545,29 +551,37 @@ int main(void)
         }
       }
 
+      inlight = (white || doors_open);
+
       // enable LED stripes if requested
       if (inlight) {
-          set_r = 0x00;
+          if (!white_duty)
+            white_duty = 128;
+          /*set_r = 0x00;
           set_g = 0x00;
           set_b = 0x00;
-          set_no_dim = true;
+          set_no_dim = true;*/
       } else {
+          white_duty = 0;   
           set_r = pwm_r;
           set_g = pwm_g;
           set_b = pwm_b;
           set_no_dim = no_dim;
       }
 
-      if (white) {
+      if (inlight || (!inlight && white_current > 0)) {
         if (white_cnt > white_max) {
           white_cnt = 0;
-          if (white_fade_on < white_max) {
-            white_fade_on += 10;
-            white_duty = white_fade_on;
+          if (white_current < white_duty) {
+            white_current += 5;
+          } else if (white_current > white_duty) {
+            white_current -= 1;
+          } else if (white_current == 0) {
+            inlight = false;
           }
         }
 
-        if (white_cnt < white_duty)
+        if (white_cnt < white_current)
           PORTC |= (_BV(PORTC3));
         else
           PORTC &= ~(_BV(PORTC3));
@@ -585,7 +599,7 @@ int main(void)
         RADIO_OUT_PORT &= ~(_BV(RADIO_OUT_PIN));
 
       if (alarm) {
-        if ((cnt%12000)==0) {
+        if ((alarm_cnt%12000)==0) {
           alarm_up = !alarm_up;
         }
         if (alarm_up)  {
@@ -600,7 +614,21 @@ int main(void)
         set_no_dim = true;
       } else
         ALARM_OUT_PORT &= ~(_BV(ALARM_OUT_PIN));
-      
+    
+      uint8_t new_leds = 0b00000000;
+      new_leds = set_led(new_leds, radio, LED_RADIO);
+      new_leds = set_led(new_leds, inlight, LED_WHITE);
+      new_leds = set_led(new_leds, five,  LED_FIVE);
+      new_leds = set_led(new_leds, alarm, LED_ALARM);
+      new_leds = set_led(new_leds, else1, LED_ELSE1);
+      new_leds = set_led(new_leds, else2, LED_ELSE2);
+      new_leds = set_led(new_leds, twotwenty, LED_POWER);
+      new_leds = set_led(new_leds, locked, LED_LOCKED);
+      if (new_leds != leds) {
+        set_leds(new_leds);
+        leds = new_leds;
+      }
+    
       // set RGB values
       setRGB(set_r, set_g, set_b, set_no_dim);
   
