@@ -96,6 +96,14 @@
 #define PORT_QH   PORTB
 #define PIN_QH    PINB /* This is the only input. */
 
+// inputs 
+#define DOOR_OPEN_PORT   PORTC
+#define DOOR_OPEN_PIN    PORTC2
+#define DOOR_LOCKED_PORT PORTC
+#define DOOR_LOCKED_PIN  PORTC4
+#define AC_AVAIL_PORT    PORTC
+#define AC_AVAIL_PIN     PORTC1
+
 // outputs 
 #define RADIO_OUT_PORT   PORTD
 #define RADIO_OUT_PIN    PORTD7
@@ -231,9 +239,9 @@ int main(void)
     // input buttons on port B
     //DDRB = 0x00;        // Port B are all inputs
     //PORTB = 0xFF;       // enable all pull-ups
-    PORTC |= ( 1 << PC1 );        // Pullup 220V detection
-    PORTC |= ( 1 << PC2 );        // Pullup doors
-    PORTC |= ( 1 << PC4 );        // Pullup car locked
+    AC_AVAIL_PORT |= ( 1 << AC_AVAIL_PIN );        // Pullup 220V detection
+    DOOR_OPEN_PORT |= ( 1 << DOOR_OPEN_PIN );        // Pullup doors
+    DOOR_LOCKED_PORT |= ( 1 << DOOR_LOCKED_PIN );        // Pullup car locked
 
     // enable timer for PWM
     TCCR1A |= _BV(COM1A1) | _BV(COM1A0) | _BV(WGM10);
@@ -308,7 +316,7 @@ int main(void)
           doors_open = true;*/
 
       // check if the car is locked
-      if (!bit_is_set(PINC, PC4)) {
+      if (!bit_is_set(PINC, DOOR_LOCKED_PIN)) {
         if (!locked)
           _delay_ms(delayAfterPress);
         locked = true;
@@ -319,7 +327,7 @@ int main(void)
       }
 
       // check if the doors are open
-      if (!bit_is_set(PINC, PC2)) {
+      if (!bit_is_set(PINC, DOOR_OPEN_PIN)) {
         if (!doors_open)
           _delay_ms(delayAfterPress);
         doors_open = true;
@@ -330,7 +338,7 @@ int main(void)
       }
 
       // check if 220V supply is available
-      if (!bit_is_set(PINC, PC1)) {
+      if (!bit_is_set(PINC, AC_AVAIL_PIN)) {
         if (!twotwenty)
           _delay_ms(delayAfterPress);
         twotwenty = true;
