@@ -55,8 +55,9 @@ class Main(object):
         GPIO.setup(SERVO_PIN, GPIO.OUT)
         self.p = GPIO.PWM(SERVO_PIN, 50) # GPIO 17 als PWM mit 50Hz
         self.p.start(5) # Initialisierung
-        self.p.ChangeDutyCycle(3)
+        self.p.ChangeDutyCycle(7) # 3-12
         time.sleep(1) # wait until position is reached
+        self.p.stop()
     
         # set power as in put
         self.log("init power stuff")

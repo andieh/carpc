@@ -1,0 +1,8 @@
+[Unit]
+After=
+
+[Service]
+ExecStart=/home/pi/carpc/system/display_control.py
+
+[Install]
+WantedBy=default.target
