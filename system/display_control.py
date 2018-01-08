@@ -4,7 +4,11 @@ import signal
 import RPi.GPIO as GPIO
 import time
 
+IGNORE_STATE = True
+
+checkPIN = 22
 servoPIN = 18
+
 open_pos = 50
 close_pos = 120
 step = 2
@@ -12,6 +16,7 @@ step = 2
 running = True
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(servoPIN, GPIO.OUT)
+GPIO.setup(checkPIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def exit_me(signum, frame):
     global running
@@ -34,7 +39,13 @@ def open():
         time.sleep(.05)
     p.stop()
 
-def check():
+def displayClosed():
+    return GPIO.input(checkPIN)
+
+def checkDisplayState():
+    if not displayClosed():
+        return
+
     p = GPIO.PWM(servoPIN, 50) # GPIO 17 als PWM mit 50Hz
     p.start(5) # Initialisierung
     p.ChangeDutyCycle(open_pos/float(10))
@@ -46,10 +57,12 @@ signal.signal(signal.SIGINT, exit_me)
 
 if __name__ == "__main__":
 
-    open()
+    if IGNORE_STATE or displayClosed():
+        open()
 
     while running:
-        #check()
+        if not IGNORE_STATE: checkDisplayState()
         time.sleep(1)
 
-    close()
+    if IGNORE_STATE or not displayClosed():
+        close()

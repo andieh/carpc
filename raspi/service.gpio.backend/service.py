@@ -6,7 +6,6 @@ __addon__        = xbmcaddon.Addon()
 __addonid__      = __addon__.getAddonInfo('id').decode( 'utf-8' )
 __addonname__    = __addon__.getAddonInfo('name').decode("utf-8")
 
-SERVO_PIN           = 18
 POWER_12_PIN        = 5
 POWER_5_PIN         = 21
 POWER_OUT_PIN       = 20
@@ -51,14 +50,6 @@ class Main(object):
         self.log("start thread")
         GPIO.setmode(GPIO.BCM)
 
-        # set servo 
-        GPIO.setup(SERVO_PIN, GPIO.OUT)
-        self.p = GPIO.PWM(SERVO_PIN, 50) # GPIO 17 als PWM mit 50Hz
-        self.p.start(5) # Initialisierung
-        self.p.ChangeDutyCycle(7) # 3-12
-        time.sleep(1) # wait until position is reached
-        self.p.stop()
-    
         # set power as in put
         self.log("init power stuff")
         GPIO.setup(POWER_12_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
@@ -70,7 +61,9 @@ class Main(object):
         GPIO.setup(REARCAM_INPUT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
         GPIO.setup(REARCAM_OUTPUT_PIN, GPIO.OUT)
 
+
         while self.running:
+            xbmcgui.Window(10000).setProperty('Temp1','1')
             power12 = GPIO.input(POWER_12_PIN) # low active
             power5  = GPIO.input(POWER_5_PIN)  # low active
             if power12 and power5 and not self.ignore_power: # both power removed!
@@ -81,12 +74,6 @@ class Main(object):
             self.check_rearcam()
 
             time.sleep(0.01)
-
-        self.p = GPIO.PWM(SERVO_PIN, 50) # GPIO 17 als PWM mit 50Hz
-        self.p.start(5) # Initialisierung
-        self.p.ChangeDutyCycle(12)
-        time.sleep(1)
-        self.p.stop()
 
         self.finished = True
 
