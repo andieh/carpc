@@ -17,7 +17,7 @@ Mainly for music, but also displays diagnostics from the engine, shows a navigat
 - Rear cam display: shows an overlay for the connected camera (usb analog s-video grabber and v4l2 / mplayer)
 - Display of the EJ22 data (finished, but connection missing)
  
-![rasp_schem](andieh.github.com/carpc/schematic/raspi.png)
+![rasp_schem](https://github.com/andieh/carpc/blob/master/schematic/raspi.png)
 
 ## ESP8266
 Nice small thing to play with. Is directly connected to the EJ22 engine and sends data via broadcast. but currently not work in progress. to be implemented later.
