@@ -314,11 +314,11 @@ Wire Wire Line
 	4700 1100 4700 1450
 Text GLabel 4850 2050 3    60   BiDi ~ 0
 Bat_12v
-Text Notes 4500 3950 0    60   ~ 12
+Text Notes 4550 4350 0    60   ~ 12
 Raspi Power Supply Board
-Text Notes 5150 4100 0    60   ~ 0
+Text Notes 5200 4500 0    60   ~ 0
 09.01.2018
-Text Notes 7600 4100 0    60   ~ 0
+Text Notes 7650 4500 0    60   ~ 0
 1
 $Comp
 L Conn_01x02_Male J?
