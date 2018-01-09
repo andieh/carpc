@@ -16,10 +16,22 @@ Mainly for music, but also displays diagnostics from the engine, shows a navigat
 - GPIO service (enable rear cam, power enable, etc).
 - Rear cam display: shows an overlay for the connected camera (usb analog s-video grabber and v4l2 / mplayer)
 - Display of the EJ22 data (finished, but connection missing)
- 
+
+### Used Components
+- Raspberry PI v.3
+- Optocoupler ltv847 for detecting 12V / 5V voltages
+- Servo for open and closing the display lid 
+- Switch for detecting the state of the display lid
+- electromagnet for holding the display lid
+- Levelshifter TE291 for USART communication between Arduino / Raspbi
+- IRLB8721 N-Channel Mosfets for LED stripes (controlled by the arduino)
+- IRF9Z P-Channel (and BS107 Transistor) switch the 12V rail for the rear cam
+- DHT 22 / AM2302 Temperature sensor 
+
+### Schematics
 ![rasp_schem](https://github.com/andieh/carpc/blob/master/schematic/raspi.png)
 
 ## ESP8266
 Nice small thing to play with. Is directly connected to the EJ22 engine and sends data via broadcast. but currently not work in progress. to be implemented later.
 
-Schematics will be updated on time, details and more to come soon.
+Schematics (created with kicad) will be updated on time, details and more to come soon.
