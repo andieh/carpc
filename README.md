@@ -28,9 +28,11 @@ Mainly for music, but also displays diagnostics from the engine, shows a navigat
 - IRF9Z P-Channel (and BS107 Transistor) switch the 12V rail for the rear cam
 - DHT 22 / AM2302 Temperature sensor 
 
+![rasp_schem](https://github.com/andieh/carpc/blob/master/schematic/raspi.png)
+
 ### Power supply
 First try was with a 18650 Battery pack, but the Raspi, including 7'' touch
-screen and GPS / Stick / S-Video consumes a lot of power (about 2-3 Amps max),
+screen and GPS / Stick / S-Video consumes a lot of power (about 2-3 Amps max), 
 i decided to build some analog voodoo, since there is a very big battery
 already included in my (every) car. There are several ways to enable the 12V
 supply: 
@@ -39,10 +41,9 @@ supply:
 - over the ignition
 If all requests were removed, a big cap (220u) is still providing power for
 some time (>10s) for the N-PMOS gate to ensure the Raspi has enough time to
-shutdown.
+shutdown. There are 3 MP1584 Buck Converter (step down) modules, which power the 
+raspberry itself, one for the display and one for the USB hub. 
 
-### Schematics
-![rasp_schem](https://github.com/andieh/carpc/blob/master/schematic/raspi.png)
 ![power_schem](https://github.com/andieh/carpc/blob/master/schematic/power.png)
 
 ## ESP8266
