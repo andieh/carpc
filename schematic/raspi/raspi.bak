@@ -1047,4 +1047,10 @@ Wire Notes Line
 	8600 2050 6800 2050
 Wire Notes Line
 	6800 2050 6800 1150
+Text Notes 7550 7500 0    60   ~ 12
+Raspberry Pi 3 Carpc Platform
+Text Notes 8250 7650 0    60   ~ 0
+09.01.2018
+Text Notes 10650 7650 0    60   ~ 0
+2
 $EndSCHEMATC

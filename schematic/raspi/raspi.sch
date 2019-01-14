@@ -1053,4 +1053,8 @@ Text Notes 8250 7650 0    60   ~ 0
 09.01.2018
 Text Notes 10650 7650 0    60   ~ 0
 2
+Text GLabel 4200 3350 0    60   Input ~ 0
+disp_button
+Wire Wire Line
+	4200 3350 4450 3350
 $EndSCHEMATC
