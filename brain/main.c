@@ -6,14 +6,15 @@
  * PB1  D9   >  sig_horn    For alarm purpurses, enable horn. 
  *                          \Todo: own board for power control?
  * PB2  D10  >  sig_lock    Locks the car using a N-Transistor
- * PB3  D11  <  sig_220v    check if 220V are available. 5V is read
+ * PB3  D11  >  NEW: sig_unlock
+ *                   replaced sig_220v    check if 220V are available. 5V is read
  *                          by the optocoppler
  * PB4  D12  >  sig_eis     Enables the 12V P-Transistor output for 
  *                          the EisEx.
  * PB5  D13  >  sig_5v      Enables 12V for the 5V rail.
  *
  * PORTC
- * PC0  A0   <  NEW: 220_led
+ * PC0  A0   >  NEW: 220_led
  *                   replaced analog_light  measure voltage for dimming touch LEDs
  * PC1  A1   <  sig_door      doors were opened (ground enabled)
  * PC2  A2   >  sig_radio     enabled radio in the front
@@ -22,9 +23,10 @@
  *                   replaced 220_led       indicates 220V are available 
  * PC5  A5   >  NEW: SCA      
  *                   replaced SCL i2c for touch panel
- * PC6  A6   >  NEW: analog_light   
+ * PC6  A6   <  NEW: analog_light   
  *                   replaced SDA i2c for touch panel
- * PC7  A7   >  sig_unlock    Unlocks the car using a N-Transistor
+ * PC7  A7   <  NEW: sig_220v
+ *                   replaced sig_unlock    Unlocks the car using a N-Transistor
  *
  * PORTD
  * PD0  RX   <  RX          Receive Data from the Arduino
@@ -39,27 +41,6 @@
  * PD7  D7   >  sig_b       LED Stripe, blue LED
  *
  */
-
-/*
-    MPR121 Test Code
-	April 8, 2010
-	by: Jim Lindblom
-	
-	This example code will both sense for touches, and drive LEDs
-	ELE6-11 are used in GPIO mode, to drive 6 LEDs
-	ELE0-5 are used as capacative touch sensors
-	Triggering a touch sensor will cause a corresponding LED to illuminate
-	
-	For desired operation, you may need to play around with TOU_THRESH and REL_THRESH threshold values.
-	With default settings, you can brush your fingers across the ELE0-5 pins to trigger the LEDs
-	
-	The 6 anodes of 2 RGB LEDs are tied to ELE6-11, cathodes tied to ground
-	
-	Tested on a 3.3V 8MHz Arduino Pro
-	A4 (PC4) -> SDA
-	A5 (PC5) -> SCL
-	D2 (PD2) -> IRQ
-*/
 
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -106,12 +87,12 @@
 
 #define IN_PORT_DOOR    PORTC
 #define IN_PIN_DOOR     PC1
-#define IN_PORT_220     PORTB
-#define IN_PIN_220      PB3
 #define IN_PORT_LOCKED  PORTC 
 #define IN_PIN_LOCKED   PC3
+#define MAX_LOCK_CNT    100
 
 #define IN_LIGHT_SENSE 6 // PC6
+#define IN_220_SENSE 7 // PC7
 #define LIGHT_THRESH	512
 
 #define OUT_RADIO_PORT   PORTC
@@ -122,7 +103,10 @@
 #define OUT_5V_PIN       PORTB5
 #define OUT_220_PORT     PORTC 
 #define OUT_220_PIN      PORTC0
-int old_led_value = 0;
+#define OUT_LOCK_PORT    PORTB 
+#define OUT_LOCK_PIN     PORTB2
+#define OUT_UNLOCK_PORT  PORTB 
+#define OUT_UNLOCK_PIN   PORTB3
 
 // includes
 
@@ -130,74 +114,10 @@ int old_led_value = 0;
 #include <string.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
-
-
 #include "uart.h"
 #define UART_BAUD_RATE 9600
 #define BAUDRATE 9600
 #define BAUD_PRESCALLER (((F_CPU / (BAUDRATE * 16UL))) - 1)
-
-//Declaration of our functions
-void USART_init(void);
-unsigned char USART_receive(void);
-void USART_send( unsigned char data);
-void USART_putstring(char* StringPtr);
-
-char String[]="Hello world!!\n";
-
-// globale Variablen
-volatile uint8_t led_color[5];                    // Einstellungen für die einzelnen PWM-Kanäle
-
-uint16_t adc_read(uint8_t adcx) {
-  ADMUX &= 0xF0;                    //Clear the older channel that was read
-  ADMUX |= adcx;                //Defines the new ADC channel to be read
-  ADCSRA |= (1<<ADSC);                //Starts a new conversion
-  while(ADCSRA & (1<<ADSC));            //Wait until the conversion is done
-  return ADCW;  
-}
-
-// Timer 1 Output COMPARE A Interrupt
-ISR (TIMER2_COMPA_vect) {
-    static uint8_t pwm_cnt=0;
-    OCR1A += (uint16_t)T_PWM;
-        
-    //set_output(&LED_PORT_WHITE, LED_PIN_WHITE, (led_color[LED_COLOR_WHITE] > pwm_cnt));
-    if (led_color[LED_COLOR_WHITE] > pwm_cnt)
-      LED_PORT_WHITE |= (_BV(LED_PIN_WHITE));
-    else
-      LED_PORT_WHITE &= ~(_BV(LED_PIN_WHITE));
-
-    //set_output(&LED_PORT_BLUE, LED_PIN_BLUE, (led_color[LED_COLOR_BLUE] > pwm_cnt));
-    if (led_color[LED_COLOR_BLUE] > pwm_cnt)
-      LED_PORT_BLUE |= (_BV(LED_PIN_BLUE));
-    else
-      LED_PORT_BLUE &= ~(_BV(LED_PIN_BLUE));
-    
-    //set_output(&LED_PORT_RED, LED_PIN_RED, (led_color[LED_COLOR_RED] > pwm_cnt));
-    if (led_color[LED_COLOR_RED] > pwm_cnt)
-      LED_PORT_RED |= (_BV(LED_PIN_RED));
-    else
-      LED_PORT_RED &= ~(_BV(LED_PIN_RED));
-    
-    //set_output(&LED_PORT_GREEN, LED_PIN_GREEN, (led_color[LED_COLOR_GREEN] > pwm_cnt));
-    if (led_color[LED_COLOR_GREEN] > pwm_cnt)
-      LED_PORT_GREEN |= (_BV(LED_PIN_GREEN));
-    else
-      LED_PORT_GREEN &= ~(_BV(LED_PIN_GREEN));
-    
-    //set_output(&LED_PORT_TOUCH, LED_PIN_TOUCH, (led_color[LED_COLOR_TOUCH] > pwm_cnt));
-    if (led_color[LED_COLOR_TOUCH] > pwm_cnt)
-      LED_PORT_TOUCH |= (_BV(LED_PIN_TOUCH));
-    else
-      LED_PORT_TOUCH &= ~(_BV(LED_PIN_TOUCH));
-
-    //PWM_PORT = tmp;                         // PWMs aktualisieren
-    if (pwm_cnt==(uint8_t)(PWM_STEPS-1))
-        pwm_cnt=0;
-    else
-        pwm_cnt++;
-}
-
 
 ///============Function Prototypes=========/////////////////
 char mpr121Read(unsigned char address);
@@ -205,12 +125,17 @@ void mpr121Write(unsigned char address, unsigned char data);
 void mpr121QuickConfig(void);
 void mpr121ViewRegisters(void);
 int checkInterrupt(void);
+uint8_t set_new_led_color();
+void set_output(volatile uint8_t *port, uint8_t pin, bool value);
+ISR (TIMER2_COMPA_vect);
+void USART_init(void);
+unsigned char USART_receive(void);
+void USART_send( unsigned char data);
+void USART_putstring(char* StringPtr);
+uint16_t adc_read(uint8_t adcx);
 
-///============Initialize Prototypes=====//////////////////
-//void ioinit(void);
-//void delay_ms(uint16_t x);	// this is configured for 16MHz, goes much faster on my 8MHz Arduino
-
-/////=========Global Variables======////////////////////
+volatile uint8_t led_color[5];                    // Einstellungen für die einzelnen PWM-Kanäle
+int old_led_value = 0;
 
 int TOUCH_RADIO  = 1 << 2;
 int TOUCH_EIS    = 1 << 3;
@@ -225,46 +150,6 @@ bool touched_light = false;
 bool touched_5v = false;
 bool touched_misc = false;
 bool touched_lock = false;
-
-uint8_t set_new_led_color() {
-  uint16_t val = adc_read(IN_LIGHT_SENSE); // / 4;     // read the input pin 
-
-#if 0
-  USART_putstring("raw value: ");
-  char str[16];
-  itoa(val, str, 10);
-  USART_putstring(str);
-  USART_putstring("\n");
-#endif 
-
-  int t = val - 130;
-  float rat = t / 500.;
-  float full = rat * 255.f;
-  uint8_t ret = 0;
-
-  if (full < 10.) 
-    ret = 10;
-  else if (full > 255.)
-    ret = 255;
-  else 
-    ret = (uint8_t)full;
- 
-#if 0
-  USART_putstring("set to value: ");
-  char str2[16];
-  itoa(ret, str2, 10);
-  USART_putstring(str2);
-  USART_putstring("\n");
-#endif 
-  led_color[LED_COLOR_TOUCH] = ret;
-}
-
-void set_output(volatile uint8_t *port, uint8_t pin, bool value) {
-  if (value)
-    *port |= (_BV(pin));
-  else
-    *port &= ~(_BV(pin));
-}
 
 int main(void)
 {
@@ -315,6 +200,7 @@ int main(void)
 
   int delay=50;
   int state = 0x00;
+  int old_new_state = state;
   
   mpr121Write(GPIO_CLEAR, 0xFF);	// Clear all LEDs
   int cnt = 0;
@@ -341,6 +227,7 @@ int main(void)
   bool door_open = false;
   bool sig_220_out = false;
   bool sig_220_in = false;
+  bool sig_in_locked = false;
   const int wait_delay= 100;
 
   
@@ -355,9 +242,12 @@ int main(void)
   bool sig_eis = false;
   bool sig_radio = false;
 
+  // lock stuff 
+  int lock_cnt = 1;
+  int lock_action = 0; // do nothing
+
   /* enable pull ups */
   IN_PORT_DOOR &= ~( 1 << IN_PIN_DOOR );
-  IN_PORT_220 &= ~( 1 << IN_PIN_220 );
   IN_PORT_LOCKED &= ~( 1 << IN_PIN_LOCKED );
 
   //DDRD = DDRD | 0b11111000; //PORTD (RX on PD0), IRQ on PD2
@@ -377,8 +267,16 @@ int main(void)
       door_open = false;
     }
 
+    // check if any of the doors are open
+    if (!bit_is_set(PINC, IN_PIN_LOCKED)) {
+      sig_in_locked = true;
+    } else {
+      sig_in_locked = false;
+    }
+
     // check if 220V are available
-    if (!bit_is_set(PINB, IN_PORT_220)) {
+    uint16_t analog_val_220 = adc_read(IN_220_SENSE);
+    if (analog_val_220 < 200) {
       sig_220_in = true;
     } else {
       sig_220_in = false;
@@ -392,7 +290,8 @@ int main(void)
     
     ++step;
     ++alarm_cnt;
-
+    ++lock_cnt;
+    
     if (step > 100000) 
       step = 0;
     
@@ -411,9 +310,6 @@ int main(void)
     }
     
     if (touch_change) {
-      mpr121Write(GPIO_CLEAR, 0xFF);	// Clear all LEDs
-      mpr121Write(GPIO_SET, state);	// Set LED 
-
       //enables light
       if (state & TOUCH_LIGHT) touched_light = true;
       else touched_light = false;
@@ -447,7 +343,19 @@ int main(void)
       sig_radio = false;
     }
 
-    sig_220_out = 1; //sig_220_in;
+    if (touched_lock) {
+      // we want to lock or unlock the car. 
+      // this is based on the state of the car.
+      if (sig_in_locked) // car is locked, so we want to unlock it
+        lock_action = 1;
+      else 
+        lock_action = 2;
+      lock_cnt = 0;
+      state &= ~(TOUCH_LOCK);
+      touched_lock = false;
+    }
+
+    sig_220_out = sig_220_in;
 
     if (alarm != ALARM) {
       if (door_open || touched_light) {
@@ -466,21 +374,47 @@ int main(void)
       }
     }
 
-
     set_output(&OUT_5V_PORT, OUT_5V_PIN, sig_5v);
     set_output(&OUT_EIS_PORT, OUT_EIS_PIN, sig_eis);
     set_output(&OUT_RADIO_PORT, OUT_RADIO_PIN, sig_radio);
     set_output(&OUT_220_PORT, OUT_220_PIN, sig_220_out);
 
+    if (lock_cnt == 0) {
+      if (lock_action == 1)
+        set_output(&OUT_UNLOCK_PORT, OUT_UNLOCK_PIN, 1);
+      else if (lock_action == 2)
+        set_output(&OUT_LOCK_PORT, OUT_LOCK_PIN, 1);
+
+    } else if (lock_cnt == MAX_LOCK_CNT) { 
+      set_output(&OUT_LOCK_PORT, OUT_LOCK_PIN, 0);
+      set_output(&OUT_UNLOCK_PORT, OUT_UNLOCK_PIN, 0);
+    } else if (lock_cnt > MAX_LOCK_CNT) {
+      lock_cnt = 1;
+    }
+
     led_color[LED_COLOR_GREEN] = 0;
     led_color[LED_COLOR_BLUE] = 0;
     led_color[LED_COLOR_RED] = 0;
-    continue;
 
-    if ((step % 100)==0) {
-      set_new_led_color();
+    // calculate new LED state 
+    int new_state = state;
+    if (door_open || touched_light)
+      new_state |= (TOUCH_LIGHT);
+    else 
+      new_state &= ~(TOUCH_LIGHT);
+    if (sig_in_locked)
+      new_state |= (TOUCH_LOCK);
+    else
+      new_state &= ~(TOUCH_LOCK);
+
+    if (new_state != old_new_state) {
+      mpr121Write(GPIO_CLEAR, 0xFF);	// Clear all LEDs
+      mpr121Write(GPIO_SET, new_state);	// Set LED 
+      old_new_state = new_state;
     }
-
+    
+    continue;
+    
     c = uart_getc();
     if (!(c&UART_NO_DATA)) {
       //uart_putc( (unsigned char)c );
@@ -580,16 +514,102 @@ int main(void)
         led_color[LED_COLOR_RED] = 0;
 
     }
-
-    /*if (avail_220) {
-      led_color[LED_COLOR_BLUE] = 127;
-    } else {
-      led_color[LED_COLOR_BLUE] = 0;
-    }*/
-    led_color[LED_COLOR_GREEN] = 0;
-    //led_color[LED_COLOR_RED] = 0;
-
 	}
+}
+
+
+
+
+/*
+ * ALL THOSE functions
+ */
+uint16_t adc_read(uint8_t adcx) {
+  ADMUX &= 0xF0;                    //Clear the older channel that was read
+  ADMUX |= adcx;                //Defines the new ADC channel to be read
+  ADCSRA |= (1<<ADSC);                //Starts a new conversion
+  while(ADCSRA & (1<<ADSC));            //Wait until the conversion is done
+  return ADCW;  
+}
+
+ISR (TIMER2_COMPA_vect) {
+    static uint8_t pwm_cnt=0;
+    OCR1A += (uint16_t)T_PWM;
+        
+    //set_output(&LED_PORT_WHITE, LED_PIN_WHITE, (led_color[LED_COLOR_WHITE] > pwm_cnt));
+    if (led_color[LED_COLOR_WHITE] > pwm_cnt)
+      LED_PORT_WHITE |= (_BV(LED_PIN_WHITE));
+    else
+      LED_PORT_WHITE &= ~(_BV(LED_PIN_WHITE));
+
+    //set_output(&LED_PORT_BLUE, LED_PIN_BLUE, (led_color[LED_COLOR_BLUE] > pwm_cnt));
+    if (led_color[LED_COLOR_BLUE] > pwm_cnt)
+      LED_PORT_BLUE |= (_BV(LED_PIN_BLUE));
+    else
+      LED_PORT_BLUE &= ~(_BV(LED_PIN_BLUE));
+    
+    //set_output(&LED_PORT_RED, LED_PIN_RED, (led_color[LED_COLOR_RED] > pwm_cnt));
+    if (led_color[LED_COLOR_RED] > pwm_cnt)
+      LED_PORT_RED |= (_BV(LED_PIN_RED));
+    else
+      LED_PORT_RED &= ~(_BV(LED_PIN_RED));
+    
+    //set_output(&LED_PORT_GREEN, LED_PIN_GREEN, (led_color[LED_COLOR_GREEN] > pwm_cnt));
+    if (led_color[LED_COLOR_GREEN] > pwm_cnt)
+      LED_PORT_GREEN |= (_BV(LED_PIN_GREEN));
+    else
+      LED_PORT_GREEN &= ~(_BV(LED_PIN_GREEN));
+    
+    //set_output(&LED_PORT_TOUCH, LED_PIN_TOUCH, (led_color[LED_COLOR_TOUCH] > pwm_cnt));
+    if (led_color[LED_COLOR_TOUCH] > pwm_cnt)
+      LED_PORT_TOUCH |= (_BV(LED_PIN_TOUCH));
+    else
+      LED_PORT_TOUCH &= ~(_BV(LED_PIN_TOUCH));
+
+    //PWM_PORT = tmp;                         // PWMs aktualisieren
+    if (pwm_cnt==(uint8_t)(PWM_STEPS-1))
+        pwm_cnt=0;
+    else
+        pwm_cnt++;
+}
+
+uint8_t set_new_led_color() {
+  uint16_t val = adc_read(IN_LIGHT_SENSE); // / 4;     // read the input pin 
+
+#if 0
+  USART_putstring("raw value: ");
+  char str[16];
+  itoa(val, str, 10);
+  USART_putstring(str);
+  USART_putstring("\n");
+#endif 
+
+  int t = val - 130;
+  float rat = t / 500.;
+  float full = rat * 255.f;
+  uint8_t ret = 0;
+
+  if (full < 10.) 
+    ret = 10;
+  else if (full > 255.)
+    ret = 255;
+  else 
+    ret = (uint8_t)full;
+ 
+#if 0
+  USART_putstring("set to value: ");
+  char str2[16];
+  itoa(ret, str2, 10);
+  USART_putstring(str2);
+  USART_putstring("\n");
+#endif 
+  led_color[LED_COLOR_TOUCH] = ret;
+}
+
+void set_output(volatile uint8_t *port, uint8_t pin, bool value) {
+  if (value)
+    *port |= (_BV(pin));
+  else
+    *port &= ~(_BV(pin));
 }
 void USART_init(void){
  UBRR0H = (uint8_t)(BAUD_PRESCALLER>>8);
@@ -744,7 +764,7 @@ int checkInterrupt(void)
 void ioinit (void)
 {
     //1 = output, 0 = input
-	DDRB = 0b00110001; //PORTB4, B5 output
+	DDRB = 0b00111111; //PORTB4, B5 output
   DDRC = 0b00110001; //PORTC4 (SDA), PORTC5 (SCL), PORTC all others are inputs
   DDRD = 0b11111010; //PORTD (RX on PD0), IRQ on PD2
 	
