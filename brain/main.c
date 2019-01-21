@@ -144,6 +144,13 @@ int TOUCH_5V     = 1 << 5;
 int TOUCH_MISC   = 1 << 6;
 int TOUCH_LOCK   = 1 << 7;
 
+int LED_EIS    = 1 << 2;
+int LED_LOCK   = 1 << 3;
+int LED_LIGHT  = 1 << 4;
+int LED_5V     = 1 << 5;
+int LED_MISC   = 1 << 6;
+int LED_RADIO  = 1 << 7;
+
 bool touched_radio = false;
 bool touched_eis = false;
 bool touched_light = false;
@@ -204,6 +211,7 @@ int main(void)
   
   mpr121Write(GPIO_CLEAR, 0xFF);	// Clear all LEDs
   int cnt = 0;
+  int lock_led_cnt = 0;
   int touch_cnt = 0;
   int step = 0;
   uint8_t white_fade = 0;
@@ -357,64 +365,6 @@ int main(void)
 
     sig_220_out = sig_220_in;
 
-    if (alarm != ALARM) {
-      if (door_open || touched_light) {
-        if (white_fade < 128) {
-          ++white_fade;
-          _delay_ms(5);
-        }
-        led_color[LED_COLOR_WHITE] = white_fade;
-      } else if (white_fade > 0) {
-        --white_fade;
-        _delay_ms(5);
-        led_color[LED_COLOR_WHITE] = white_fade;
-      } else {
-        white_fade = 0;
-        led_color[LED_COLOR_WHITE] = 0;
-      }
-    }
-
-    set_output(&OUT_5V_PORT, OUT_5V_PIN, sig_5v);
-    set_output(&OUT_EIS_PORT, OUT_EIS_PIN, sig_eis);
-    set_output(&OUT_RADIO_PORT, OUT_RADIO_PIN, sig_radio);
-    set_output(&OUT_220_PORT, OUT_220_PIN, sig_220_out);
-
-    if (lock_cnt == 0) {
-      if (lock_action == 1)
-        set_output(&OUT_UNLOCK_PORT, OUT_UNLOCK_PIN, 1);
-      else if (lock_action == 2)
-        set_output(&OUT_LOCK_PORT, OUT_LOCK_PIN, 1);
-
-    } else if (lock_cnt == MAX_LOCK_CNT) { 
-      set_output(&OUT_LOCK_PORT, OUT_LOCK_PIN, 0);
-      set_output(&OUT_UNLOCK_PORT, OUT_UNLOCK_PIN, 0);
-    } else if (lock_cnt > MAX_LOCK_CNT) {
-      lock_cnt = 1;
-    }
-
-    led_color[LED_COLOR_GREEN] = 0;
-    led_color[LED_COLOR_BLUE] = 0;
-    led_color[LED_COLOR_RED] = 0;
-
-    // calculate new LED state 
-    int new_state = state;
-    if (door_open || touched_light)
-      new_state |= (TOUCH_LIGHT);
-    else 
-      new_state &= ~(TOUCH_LIGHT);
-    if (sig_in_locked)
-      new_state |= (TOUCH_LOCK);
-    else
-      new_state &= ~(TOUCH_LOCK);
-
-    if (new_state != old_new_state) {
-      mpr121Write(GPIO_CLEAR, 0xFF);	// Clear all LEDs
-      mpr121Write(GPIO_SET, new_state);	// Set LED 
-      old_new_state = new_state;
-    }
-    
-    continue;
-    
     c = uart_getc();
     if (!(c&UART_NO_DATA)) {
       //uart_putc( (unsigned char)c );
@@ -459,11 +409,29 @@ int main(void)
       }
 
     }
+
+
+
+    if (alarm != ALARM) {
+      if (door_open || touched_light) {
+        if (white_fade < 128) {
+          ++white_fade;
+          _delay_ms(5);
+        }
+        led_color[LED_COLOR_WHITE] = white_fade;
+      } else if (white_fade > 0) {
+        --white_fade;
+        _delay_ms(5);
+        led_color[LED_COLOR_WHITE] = white_fade;
+      } else {
+        white_fade = 0;
+        led_color[LED_COLOR_WHITE] = 0;
+      }
+    }
   
     // request alarm over UART
     if (alarm_requested) {
       red_on = true;
-      state |= (1<<3);
     }
 
     if (alarm == ALARM_OFF) {
@@ -512,9 +480,73 @@ int main(void)
         led_color[LED_COLOR_RED] = 128;
       else 
         led_color[LED_COLOR_RED] = 0;
-
     }
-	}
+
+    set_output(&OUT_5V_PORT, OUT_5V_PIN, sig_5v);
+    set_output(&OUT_EIS_PORT, OUT_EIS_PIN, sig_eis);
+    set_output(&OUT_RADIO_PORT, OUT_RADIO_PIN, sig_radio);
+    set_output(&OUT_220_PORT, OUT_220_PIN, sig_220_out);
+
+    if (lock_cnt == 0) {
+      if (lock_action == 1)
+        set_output(&OUT_UNLOCK_PORT, OUT_UNLOCK_PIN, 1);
+      else if (lock_action == 2)
+        set_output(&OUT_LOCK_PORT, OUT_LOCK_PIN, 1);
+
+    } else if (lock_cnt == MAX_LOCK_CNT) { 
+      set_output(&OUT_LOCK_PORT, OUT_LOCK_PIN, 0);
+      set_output(&OUT_UNLOCK_PORT, OUT_UNLOCK_PIN, 0);
+    } else if (lock_cnt > MAX_LOCK_CNT) {
+      lock_cnt = 1;
+    }
+
+    led_color[LED_COLOR_GREEN] = 0;
+    led_color[LED_COLOR_BLUE] = 0;
+    //led_color[LED_COLOR_RED] = 0;
+
+    // calculate new LED state 
+    int new_state = 0x00; //state;
+    // if light was requested or doors are opened, 
+    // toggle button
+    if (door_open || touched_light)
+      new_state |= (LED_LIGHT);
+
+    if (touched_radio) 
+      new_state |= (LED_RADIO);
+
+    if (touched_5v) 
+      new_state |= (LED_5V);
+
+    if (touched_eis)
+      new_state |= (LED_EIS);
+
+    if (touched_misc)
+      new_state |= (LED_MISC);
+
+    // if the car is locked, we want to blink the button
+    bool glow_lock_led = false;
+    if (sig_in_locked) {
+      ++lock_led_cnt;
+      if (lock_led_cnt < 50) 
+        glow_lock_led = true;
+      else if (lock_led_cnt < 700)
+        glow_lock_led = false;
+      else 
+        lock_led_cnt = 0;
+    } else {
+      lock_led_cnt = 0;
+    }
+
+    if (glow_lock_led)
+      new_state |= (LED_LOCK);
+    
+    if (new_state != old_new_state) {
+      mpr121Write(GPIO_CLEAR, 0xFF);	// Clear all LEDs
+      mpr121Write(GPIO_SET, new_state);	// Set LED 
+      old_new_state = new_state;
+    }
+
+	} // end loop
 }
 
 
