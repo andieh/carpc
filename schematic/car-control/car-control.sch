@@ -606,9 +606,9 @@ F 3 "" H 7050 5050 50  0001 C CNN
 $EndComp
 Text Notes 6800 4800 0    60   ~ 0
 Alarm Control
-Text Label 7350 4950 0    60   ~ 0
-RX
 Text Label 6850 4950 2    60   ~ 0
+RX
+Text Label 7350 4950 0    60   ~ 0
 TX
 Text Label 6850 5050 2    60   ~ 0
 VDD
@@ -624,9 +624,9 @@ Text Label 7350 4050 0    60   ~ 0
 SCL
 Text Label 6850 4050 2    60   ~ 0
 SDA
-Text Label 5650 4200 0    60   ~ 0
+Text Label 5650 4100 0    60   ~ 0
 SCL
-Text Label 5650 4300 0    60   ~ 0
+Text Label 5650 4200 0    60   ~ 0
 SDA
 Text Label 4650 3300 2    60   ~ 0
 soft_RX
@@ -638,7 +638,7 @@ Text Label 4650 4000 2    60   ~ 0
 sig_horn
 Text Label 4650 4100 2    60   ~ 0
 sig_lock
-Text Label 4650 4200 2    60   ~ 0
+Text Label 5650 4400 0    60   ~ 0
 sig_220v
 Text Label 4650 4300 2    60   ~ 0
 sig_eis
@@ -706,7 +706,7 @@ Text Label 3550 700  0    60   ~ 0
 power_eis
 Text Label 4650 4400 2    60   ~ 0
 sig_5v
-Text Label 5650 3700 0    60   ~ 0
+Text Label 5650 4300 0    60   ~ 0
 analog_light
 Text Label 7350 4150 0    60   ~ 0
 analog_light
@@ -757,26 +757,15 @@ Text Label 9850 3750 2    60   ~ 0
 inp_12v
 Text Label 9850 3850 2    60   ~ 0
 inp_12v_unfused
-$Comp
-L Screw_Terminal_01x07 J9
-U 1 1 5C12F7E7
-P 9550 4900
-F 0 "J9" H 9550 5000 50  0000 C CNN
-F 1 "Sig_in_out" H 9550 4450 50  0000 C CNN
-F 2 "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-8-5.08_1x08_P5.08mm_Horizontal" H 9550 4900 50  0001 C CNN
-F 3 "" H 9550 4900 50  0001 C CNN
-	1    9550 4900
-	-1   0    0    1   
-$EndComp
 Text Label 9750 4600 0    60   ~ 0
 220_avail
 Text Label 9750 4700 0    60   ~ 0
 door_gnd
-Text Label 9750 5100 0    60   ~ 0
+Text Label 9750 5300 0    60   ~ 0
 power_eis
-Text Label 9750 5200 0    60   ~ 0
+Text Label 9750 5400 0    60   ~ 0
 power_5v
-Text Label 9750 5000 0    60   ~ 0
+Text Label 9750 5200 0    60   ~ 0
 lock_car
 NoConn ~ 2000 3850
 $Comp
@@ -829,7 +818,7 @@ Text Label 2000 2750 0    60   ~ 0
 sig_b
 Text Label 7350 4350 0    60   ~ 0
 220_led
-Text Label 5650 4100 0    60   ~ 0
+Text Label 5650 3700 0    60   ~ 0
 220_led
 Text Label 5350 1100 2    60   ~ 0
 sig_lock
@@ -841,7 +830,7 @@ U 1 1 5C1D2874
 P 3250 3000
 F 0 "D1" H 3250 3100 50  0000 C CNN
 F 1 "red" H 3250 2900 50  0000 C CNN
-F 2 "led:LED_D5.0mm_Clear" H 3250 3000 50  0001 C CNN
+F 2 "led:LED_D3.0mm_Clear" H 3250 3000 50  0001 C CNN
 F 3 "" H 3250 3000 50  0001 C CNN
 	1    3250 3000
 	1    0    0    -1  
@@ -867,7 +856,7 @@ U 1 1 5C1D343A
 P 3250 3300
 F 0 "D2" H 3250 3400 50  0000 C CNN
 F 1 "green" H 3250 3200 50  0000 C CNN
-F 2 "led:LED_D5.0mm_Clear" H 3250 3300 50  0001 C CNN
+F 2 "led:LED_D3.0mm_Clear" H 3250 3300 50  0001 C CNN
 F 3 "" H 3250 3300 50  0001 C CNN
 	1    3250 3300
 	1    0    0    -1  
@@ -893,7 +882,7 @@ U 1 1 5C1D360C
 P 3250 3600
 F 0 "D3" H 3250 3700 50  0000 C CNN
 F 1 "blue" H 3250 3500 50  0000 C CNN
-F 2 "led:LED_D5.0mm_Clear" H 3250 3600 50  0001 C CNN
+F 2 "led:LED_D3.0mm_Clear" H 3250 3600 50  0001 C CNN
 F 3 "" H 3250 3600 50  0001 C CNN
 	1    3250 3600
 	1    0    0    -1  
@@ -919,7 +908,7 @@ U 1 1 5C1D384B
 P 3250 3900
 F 0 "D4" H 3250 4000 50  0000 C CNN
 F 1 "white" H 3250 3800 50  0000 C CNN
-F 2 "led:LED_D5.0mm_Clear" H 3250 3900 50  0001 C CNN
+F 2 "led:LED_D3.0mm_Clear" H 3250 3900 50  0001 C CNN
 F 3 "" H 3250 3900 50  0001 C CNN
 	1    3250 3900
 	1    0    0    -1  
@@ -942,56 +931,56 @@ sig_w
 $Comp
 L LED D5
 U 1 1 5C1D3F0A
-P 7350 950
-F 0 "D5" H 7350 1050 50  0000 C CNN
-F 1 "act_eis" H 7350 850 50  0000 C CNN
-F 2 "led:LED_D5.0mm_Clear" H 7350 950 50  0001 C CNN
-F 3 "" H 7350 950 50  0001 C CNN
-	1    7350 950 
+P 7300 1100
+F 0 "D5" H 7300 1200 50  0000 C CNN
+F 1 "act_eis" H 7300 1000 50  0000 C CNN
+F 2 "led:LED_D3.0mm_Clear" H 7300 1100 50  0001 C CNN
+F 3 "" H 7300 1100 50  0001 C CNN
+	1    7300 1100
 	1    0    0    -1  
 $EndComp
-Text Label 7200 950  2    60   ~ 0
+Text Label 7150 1100 2    60   ~ 0
 GND
 $Comp
 L R R16
 U 1 1 5C1D3F12
-P 7650 950
-F 0 "R16" V 7730 950 50  0000 C CNN
-F 1 "220" V 7650 950 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 7580 950 50  0001 C CNN
-F 3 "" H 7650 950 50  0001 C CNN
-	1    7650 950 
+P 7600 1100
+F 0 "R16" V 7680 1100 50  0000 C CNN
+F 1 "220" V 7600 1100 50  0000 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 7530 1100 50  0001 C CNN
+F 3 "" H 7600 1100 50  0001 C CNN
+	1    7600 1100
 	0    -1   -1   0   
 $EndComp
-Text Label 7800 950  0    60   ~ 0
+Text Label 7750 1100 0    60   ~ 0
 sig_eis
 $Comp
 L LED D7
 U 1 1 5C1D4636
-P 7350 1550
-F 0 "D7" H 7350 1650 50  0000 C CNN
-F 1 "act_5v" H 7350 1450 50  0000 C CNN
-F 2 "led:LED_D5.0mm_Clear" H 7350 1550 50  0001 C CNN
-F 3 "" H 7350 1550 50  0001 C CNN
-	1    7350 1550
+P 7300 1700
+F 0 "D7" H 7300 1800 50  0000 C CNN
+F 1 "radio" H 7300 1600 50  0000 C CNN
+F 2 "led:LED_D3.0mm_Clear" H 7300 1700 50  0001 C CNN
+F 3 "" H 7300 1700 50  0001 C CNN
+	1    7300 1700
 	1    0    0    -1  
 $EndComp
-Text Label 7200 1550 2    60   ~ 0
+Text Label 7150 1700 2    60   ~ 0
 GND
 $Comp
 L R R18
 U 1 1 5C1D463E
-P 7650 1550
-F 0 "R18" V 7730 1550 50  0000 C CNN
-F 1 "220" V 7650 1550 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 7580 1550 50  0001 C CNN
-F 3 "" H 7650 1550 50  0001 C CNN
-	1    7650 1550
+P 7600 1700
+F 0 "R18" V 7680 1700 50  0000 C CNN
+F 1 "220" V 7600 1700 50  0000 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 7530 1700 50  0001 C CNN
+F 3 "" H 7600 1700 50  0001 C CNN
+	1    7600 1700
 	0    -1   -1   0   
 $EndComp
-Text Label 7800 1550 0    60   ~ 0
-sig_5v
-Text Label 5650 4400 0    60   ~ 0
+Text Label 7750 1700 0    60   ~ 0
+sig_radio
+Text Label 4650 4200 2    60   ~ 0
 sig_unlock
 Text Label 4450 1800 2    60   ~ 0
 sig_unlock
@@ -1053,7 +1042,7 @@ Wire Wire Line
 	5350 1400 5650 1400
 Wire Wire Line
 	5650 1400 5650 1300
-Text Label 9750 4900 0    60   ~ 0
+Text Label 9750 5100 0    60   ~ 0
 unlock_car
 Text Label 9600 2400 2    60   ~ 0
 GND
@@ -1070,7 +1059,6 @@ F 3 "" H 9450 2200 50  0001 C CNN
 	1    9450 2200
 	0    1    1    0   
 $EndComp
-NoConn ~ 9750 4800
 NoConn ~ 7350 2750
 NoConn ~ 7350 2850
 NoConn ~ 6850 2850
@@ -1098,4 +1086,130 @@ Text Label 8250 5950 2    60   ~ 0
 cam_1_g
 NoConn ~ 7350 4450
 NoConn ~ 6850 4450
+$Comp
+L Screw_Terminal_01x02 J9
+U 1 1 5C48F76D
+P 9550 4700
+F 0 "J9" H 9550 4800 50  0000 C CNN
+F 1 "Sig_in" H 9550 4500 50  0000 C CNN
+F 2 "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal" H 9550 4700 50  0001 C CNN
+F 3 "" H 9550 4700 50  0001 C CNN
+	1    9550 4700
+	-1   0    0    1   
+$EndComp
+$Comp
+L Screw_Terminal_01x04 J11
+U 1 1 5C48F81E
+P 9550 5300
+F 0 "J11" H 9550 5500 50  0000 C CNN
+F 1 "Sig_out" H 9550 5000 50  0000 C CNN
+F 2 "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-4-5.08_1x04_P5.08mm_Horizontal" H 9550 5300 50  0001 C CNN
+F 3 "" H 9550 5300 50  0001 C CNN
+	1    9550 5300
+	-1   0    0    1   
+$EndComp
+$Comp
+L LED D8
+U 1 1 5C48FBDB
+P 7300 1400
+F 0 "D8" H 7300 1500 50  0000 C CNN
+F 1 "act_5v" H 7300 1300 50  0000 C CNN
+F 2 "led:LED_D3.0mm_Clear" H 7300 1400 50  0001 C CNN
+F 3 "" H 7300 1400 50  0001 C CNN
+	1    7300 1400
+	1    0    0    -1  
+$EndComp
+Text Label 7150 1400 2    60   ~ 0
+GND
+$Comp
+L R R20
+U 1 1 5C48FBE3
+P 7600 1400
+F 0 "R20" V 7680 1400 50  0000 C CNN
+F 1 "220" V 7600 1400 50  0000 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 7530 1400 50  0001 C CNN
+F 3 "" H 7600 1400 50  0001 C CNN
+	1    7600 1400
+	0    -1   -1   0   
+$EndComp
+Text Label 7750 1400 0    60   ~ 0
+sig_5v
+$Comp
+L LED D6
+U 1 1 5C490421
+P 7300 800
+F 0 "D6" H 7300 900 50  0000 C CNN
+F 1 "horn" H 7300 700 50  0000 C CNN
+F 2 "led:LED_D3.0mm_Clear" H 7300 800 50  0001 C CNN
+F 3 "" H 7300 800 50  0001 C CNN
+	1    7300 800 
+	1    0    0    -1  
+$EndComp
+Text Label 7150 800  2    60   ~ 0
+GND
+$Comp
+L R R19
+U 1 1 5C490429
+P 7600 800
+F 0 "R19" V 7680 800 50  0000 C CNN
+F 1 "220" V 7600 800 50  0000 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 7530 800 50  0001 C CNN
+F 3 "" H 7600 800 50  0001 C CNN
+	1    7600 800 
+	0    -1   -1   0   
+$EndComp
+Text Label 7750 800  0    60   ~ 0
+sig_horn
+$Comp
+L LED D9
+U 1 1 5C490650
+P 8250 2800
+F 0 "D9" H 8250 2900 50  0000 C CNN
+F 1 "lock" H 8250 2700 50  0000 C CNN
+F 2 "led:LED_D3.0mm_Clear" H 8250 2800 50  0001 C CNN
+F 3 "" H 8250 2800 50  0001 C CNN
+	1    8250 2800
+	1    0    0    -1  
+$EndComp
+Text Label 8100 2800 2    60   ~ 0
+GND
+$Comp
+L R R21
+U 1 1 5C490658
+P 8550 2800
+F 0 "R21" V 8630 2800 50  0000 C CNN
+F 1 "220" V 8550 2800 50  0000 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 8480 2800 50  0001 C CNN
+F 3 "" H 8550 2800 50  0001 C CNN
+	1    8550 2800
+	0    -1   -1   0   
+$EndComp
+Text Label 8700 2800 0    60   ~ 0
+sig_lock
+$Comp
+L LED D10
+U 1 1 5C490874
+P 8250 3100
+F 0 "D10" H 8250 3200 50  0000 C CNN
+F 1 "unlock" H 8250 3000 50  0000 C CNN
+F 2 "led:LED_D3.0mm_Clear" H 8250 3100 50  0001 C CNN
+F 3 "" H 8250 3100 50  0001 C CNN
+	1    8250 3100
+	1    0    0    -1  
+$EndComp
+Text Label 8100 3100 2    60   ~ 0
+GND
+$Comp
+L R R22
+U 1 1 5C49087C
+P 8550 3100
+F 0 "R22" V 8630 3100 50  0000 C CNN
+F 1 "220" V 8550 3100 50  0000 C CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 8480 3100 50  0001 C CNN
+F 3 "" H 8550 3100 50  0001 C CNN
+	1    8550 3100
+	0    -1   -1   0   
+$EndComp
+Text Label 8700 3100 0    60   ~ 0
+sig_unlock
 $EndSCHEMATC

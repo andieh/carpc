@@ -196,14 +196,14 @@ int main(void)
 	mpr121Write(GPIO_CTRL1, 0xFF);	// GPIO Control 1
 	mpr121Write(GPIO_CLEAR, 0xFF);	// GPIO Data Clear
 	
-	// Blink LEDs to begin
+	/*// Blink LEDs to begin
 	for (int i = 0; i < 5; i++)
 	{
 		mpr121Write(GPIO_SET, 0xFF);
 		_delay_ms(50);
 		mpr121Write(GPIO_CLEAR, 0xFF);
 		_delay_ms(50);
-	}
+	}*/
 
   int delay=50;
   int state = 0x00;
@@ -748,23 +748,16 @@ void mpr121QuickConfig(void)
 	mpr121Write(ELE5_T, TOU_THRESH);
 	mpr121Write(ELE5_R, REL_THRESH);
 	
-  /*mpr121Write(ELE6_T, TOU_THRESH);
-	mpr121Write(ELE6_R, REL_THRESH);
-	mpr121Write(ELE7_T, TOU_THRESH);
-	mpr121Write(ELE7_R, REL_THRESH);
-	mpr121Write(ELE8_T, TOU_THRESH);
-	mpr121Write(ELE8_R, REL_THRESH);
-	mpr121Write(ELE9_T, TOU_THRESH);
-	mpr121Write(ELE9_R, REL_THRESH);
-	mpr121Write(ELE10_T, TOU_THRESH);
-	mpr121Write(ELE10_R, REL_THRESH);
-	mpr121Write(ELE11_T, TOU_THRESH);
-	mpr121Write(ELE11_R, REL_THRESH);*/
-	
 	// Section D
 	// Set the Filter Configuration
 	// Set ESI2
 	mpr121Write(FIL_CFG, 0x04);
+  
+  // 0xC0 = 11 0xFF
+  // 0x40 = 01 0x7F
+  // 0x80 = 10 0xBF
+  // 0x00 = 00 0x3F
+  mpr121Write(0x5C, 0xFF);
 	
 	// Section E
 	// Electrode Configuration
