@@ -1,4 +1,4 @@
-update=Sun 23 Dec 2018 11:54:48 PM CET
+update=Fri 15 Feb 2019 05:16:22 PM CET
 version=1
 last_client=kicad
 [pcbnew]
@@ -241,3 +241,4 @@ LibName209=Transistor_IGBT
 LibName210=Triac_Thyristor
 LibName211=Valve
 LibName212=Video
+LibName213=/home/andieh/src/kicad/andiehs_lib/mp1584

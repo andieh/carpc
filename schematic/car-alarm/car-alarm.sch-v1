@@ -181,8 +181,6 @@ LIBS:Transistor_IGBT
 LIBS:Triac_Thyristor
 LIBS:Valve
 LIBS:Video
-LIBS:mp1584
-LIBS:car-alarm-cache
 EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
@@ -278,6 +276,14 @@ Text Label 1800 2800 2    60   ~ 0
 TX
 Text Label 2300 2800 0    60   ~ 0
 RX
+Text Label 1800 2900 2    60   ~ 0
+VDD
+Text Label 1800 3000 2    60   ~ 0
+VDD
+Text Label 2300 2900 0    60   ~ 0
+GND
+Text Label 2300 3000 0    60   ~ 0
+GND
 Text Label 5300 4800 3    60   ~ 0
 GND
 Text Label 5400 4800 3    60   ~ 0
@@ -350,295 +356,17 @@ Text Label 4800 4500 2    60   ~ 0
 rfid_sck
 Text Label 4800 4200 2    60   ~ 0
 rfid_ss
+NoConn ~ 4800 3500
+NoConn ~ 4800 3600
 NoConn ~ 4800 3200
 NoConn ~ 4800 3300
 NoConn ~ 5800 3200
 NoConn ~ 5800 3300
 NoConn ~ 5800 3600
+NoConn ~ 5800 3800
+NoConn ~ 5800 3900
 NoConn ~ 5800 4000
 NoConn ~ 5800 4100
 NoConn ~ 5800 4400
 NoConn ~ 5800 4500
-Text Label 2300 3000 0    60   ~ 0
-GND
-Text Label 2650 6100 0    60   ~ 0
-VDD
-Text Label 1800 3000 2    60   ~ 0
-in_5v
-$Comp
-L LTV-847 U1
-U 1 1 5C66E3D2
-P 1600 1150
-F 0 "U1" H 1400 1350 50  0000 L CNN
-F 1 "LTV-847" H 1600 1350 50  0000 L CNN
-F 2 "Package_DIP:DIP-16_W7.62mm" H 1400 950 50  0001 L CIN
-F 3 "" H 1600 1150 50  0001 L CNN
-	1    1600 1150
-	1    0    0    -1  
-$EndComp
-$Comp
-L LTV-847 U1
-U 2 1 5C66E41C
-P 1600 1450
-F 0 "U1" H 1400 1650 50  0000 L CNN
-F 1 "LTV-847" H 1600 1650 50  0000 L CNN
-F 2 "Package_DIP:DIP-16_W7.62mm" H 1400 1250 50  0001 L CIN
-F 3 "" H 1600 1450 50  0001 L CNN
-	2    1600 1450
-	1    0    0    -1  
-$EndComp
-$Comp
-L LTV-847 U1
-U 3 1 5C66E486
-P 1600 1750
-F 0 "U1" H 1400 1950 50  0000 L CNN
-F 1 "LTV-847" H 1600 1950 50  0000 L CNN
-F 2 "Package_DIP:DIP-16_W7.62mm" H 1400 1550 50  0001 L CIN
-F 3 "" H 1600 1750 50  0001 L CNN
-	3    1600 1750
-	1    0    0    -1  
-$EndComp
-$Comp
-L LTV-847 U1
-U 4 1 5C66E4CF
-P 1600 2050
-F 0 "U1" H 1400 2250 50  0000 L CNN
-F 1 "LTV-847" H 1600 2250 50  0000 L CNN
-F 2 "Package_DIP:DIP-16_W7.62mm" H 1400 1850 50  0001 L CIN
-F 3 "" H 1600 2050 50  0001 L CNN
-	4    1600 2050
-	1    0    0    -1  
-$EndComp
-$Comp
-L R R3
-U 1 1 5C66E533
-P 2200 800
-F 0 "R3" V 2280 800 50  0000 C CNN
-F 1 "4.7k" V 2200 800 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 2130 800 50  0001 C CNN
-F 3 "" H 2200 800 50  0001 C CNN
-	1    2200 800 
-	0    1    1    0   
-$EndComp
-Text Label 2400 1050 0    60   ~ 0
-sig_door
-Wire Wire Line
-	1900 1050 2400 1050
-Wire Wire Line
-	2050 800  2000 800 
-Wire Wire Line
-	2000 800  2000 1050
-Connection ~ 2000 1050
-Text Label 2350 800  0    60   ~ 0
-VDD
-Text Label 750  1050 2    60   ~ 0
-VDD
-$Comp
-L R R2
-U 1 1 5C66E77A
-P 1000 1050
-F 0 "R2" V 1080 1050 50  0000 C CNN
-F 1 "220" V 1000 1050 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 930 1050 50  0001 C CNN
-F 3 "" H 1000 1050 50  0001 C CNN
-	1    1000 1050
-	0    1    1    0   
-$EndComp
-Wire Wire Line
-	750  1050 850  1050
-Wire Wire Line
-	1150 1050 1300 1050
-Text Label 1300 1250 2    60   ~ 0
-door_gnd
-$Comp
-L MP1584 U2
-U 1 1 5C66EC63
-P 2050 5500
-F 0 "U2" H 1950 5500 60  0000 C CNN
-F 1 "MP1584" H 1950 5400 60  0000 C CNN
-F 2 "mp1584_andieh:SG053-SZ" H 2050 5500 60  0001 C CNN
-F 3 "" H 2050 5500 60  0001 C CNN
-	1    2050 5500
-	1    0    0    -1  
-$EndComp
-Text Label 1300 5800 2    60   ~ 0
-gnd_in
-Text Label 1300 6100 2    60   ~ 0
-vdd_in_12v
-Text Label 2650 5800 0    60   ~ 0
-GND
-Wire Wire Line
-	2450 5750 2550 5750
-Wire Wire Line
-	2550 5750 2550 5850
-Wire Wire Line
-	2550 5800 2650 5800
-Wire Wire Line
-	2550 5850 2450 5850
-Connection ~ 2550 5800
-Wire Wire Line
-	2450 6050 2550 6050
-Wire Wire Line
-	2550 6050 2550 6150
-Wire Wire Line
-	2550 6150 2450 6150
-Wire Wire Line
-	2550 6100 2650 6100
-Connection ~ 2550 6100
-Wire Wire Line
-	1450 5750 1350 5750
-Wire Wire Line
-	1350 5750 1350 5850
-Wire Wire Line
-	1350 5850 1450 5850
-Wire Wire Line
-	1350 5800 1300 5800
-Connection ~ 1350 5800
-Wire Wire Line
-	1450 6050 1350 6050
-Wire Wire Line
-	1350 6050 1350 6150
-Wire Wire Line
-	1350 6150 1450 6150
-Wire Wire Line
-	1300 6100 1350 6100
-Connection ~ 1350 6100
-Text Label 4800 3500 2    60   ~ 0
-sig_door
-Text Label 5800 3800 0    60   ~ 0
-sig_blink_left
-Text Label 5800 3900 0    60   ~ 0
-sig_blink_right
-Text Label 4050 5550 2    60   ~ 0
-vdd_in_12v
-Text Label 4050 5650 2    60   ~ 0
-gnd_in
-Text Label 4000 6100 2    60   ~ 0
-gps_sw
-Text Label 4800 3600 2    60   ~ 0
-sig_gps
-Text Label 4000 6550 2    60   ~ 0
-blink_left
-Text Label 4000 6650 2    60   ~ 0
-blink_right
-$Comp
-L IRF9540N Q2
-U 1 1 5C66FC3D
-P 8200 3500
-F 0 "Q2" H 8400 3575 50  0000 L CNN
-F 1 "IRF9540N" H 8400 3500 50  0000 L CNN
-F 2 "Package_test:TO-220-3_Vertical" H 8400 3425 50  0001 L CIN
-F 3 "" H 8200 3500 50  0001 L CNN
-	1    8200 3500
-	1    0    0    -1  
-$EndComp
-$Comp
-L R R5
-U 1 1 5C66FE39
-P 8000 3650
-F 0 "R5" V 8080 3650 50  0000 C CNN
-F 1 "10k" V 8000 3650 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 7930 3650 50  0001 C CNN
-F 3 "" H 8000 3650 50  0001 C CNN
-	1    8000 3650
-	-1   0    0    1   
-$EndComp
-$Comp
-L BS107 Q1
-U 1 1 5C66FF51
-P 7900 4000
-F 0 "Q1" H 8100 4075 50  0000 L CNN
-F 1 "BS107" H 8100 4000 50  0000 L CNN
-F 2 "Package_test:TO-92_Inline" H 8100 3925 50  0001 L CIN
-F 3 "" H 7900 4000 50  0001 L CNN
-	1    7900 4000
-	1    0    0    -1  
-$EndComp
-$Comp
-L R R4
-U 1 1 5C6700A5
-P 7700 4150
-F 0 "R4" V 7780 4150 50  0000 C CNN
-F 1 "10k" V 7700 4150 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 7630 4150 50  0001 C CNN
-F 3 "" H 7700 4150 50  0001 C CNN
-	1    7700 4150
-	-1   0    0    1   
-$EndComp
-Wire Wire Line
-	8000 3800 8300 3800
-Wire Wire Line
-	8300 3800 8300 3700
-Wire Wire Line
-	7700 4300 8000 4300
-Wire Wire Line
-	8000 4300 8000 4200
-Text Label 7700 4000 2    60   ~ 0
-sig_blink_left
-Text Label 8000 4300 0    60   ~ 0
-gnd_in
-Text Label 8300 3800 0    60   ~ 0
-vdd_in_12v
-Text Label 8300 3300 0    60   ~ 0
-blink_left
-$Comp
-L IRF9540N Q4
-U 1 1 5C67107B
-P 8800 1950
-F 0 "Q4" H 9000 2025 50  0000 L CNN
-F 1 "IRF9540N" H 9000 1950 50  0000 L CNN
-F 2 "Package_test:TO-220-3_Vertical" H 9000 1875 50  0001 L CIN
-F 3 "" H 8800 1950 50  0001 L CNN
-	1    8800 1950
-	1    0    0    -1  
-$EndComp
-$Comp
-L R R7
-U 1 1 5C671082
-P 8600 2100
-F 0 "R7" V 8680 2100 50  0000 C CNN
-F 1 "10k" V 8600 2100 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 8530 2100 50  0001 C CNN
-F 3 "" H 8600 2100 50  0001 C CNN
-	1    8600 2100
-	-1   0    0    1   
-$EndComp
-$Comp
-L BS107 Q3
-U 1 1 5C671089
-P 8500 2450
-F 0 "Q3" H 8700 2525 50  0000 L CNN
-F 1 "BS107" H 8700 2450 50  0000 L CNN
-F 2 "Package_test:TO-92_Inline" H 8700 2375 50  0001 L CIN
-F 3 "" H 8500 2450 50  0001 L CNN
-	1    8500 2450
-	1    0    0    -1  
-$EndComp
-$Comp
-L R R6
-U 1 1 5C671090
-P 8300 2600
-F 0 "R6" V 8380 2600 50  0000 C CNN
-F 1 "10k" V 8300 2600 50  0000 C CNN
-F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal" V 8230 2600 50  0001 C CNN
-F 3 "" H 8300 2600 50  0001 C CNN
-	1    8300 2600
-	-1   0    0    1   
-$EndComp
-Wire Wire Line
-	8600 2250 8900 2250
-Wire Wire Line
-	8900 2250 8900 2150
-Wire Wire Line
-	8300 2750 8600 2750
-Wire Wire Line
-	8600 2750 8600 2650
-Text Label 8300 2450 2    60   ~ 0
-sig_blink_right
-Text Label 8600 2750 0    60   ~ 0
-gnd_in
-Text Label 8900 2250 0    60   ~ 0
-vdd_in_12v
-Text Label 8900 1750 0    60   ~ 0
-blink_right
 $EndSCHEMATC
